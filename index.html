@@ -6,82 +6,75 @@
   <title>Mòdul 0233 Electrònica - Repositori de Recursos</title>
   <style>
     :root {
-      --primary: #1e3a8a;
-      --primary-light: #3b82f6;
+      --primary: #1e40af;
+      --primary-hover: #1d4ed8;
       --bg: #f8fafc;
       --surface: #ffffff;
       --text: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --radius: 8px;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
 
-    header { background: var(--primary); color: white; padding: 2rem 1.5rem; text-align: center; position: relative; }
-    header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
-    header p { opacity: 0.9; font-size: 0.95rem; }
+    /* Header */
+    header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 3rem 1.5rem 2.5rem; text-align: center; }
+    header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 0.5rem; }
+    header p { opacity: 0.9; font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
 
-    /* Botó discret per al professor */
-    .btn-admin-toggle {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.3rem 0.7rem;
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-size: 0.8rem;
+    /* Navegació */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: center; gap: 0.5rem; padding: 0.75rem 1rem; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); flex-wrap: wrap; }
+    nav button { background: transparent; border: none; padding: 0.6rem 1.2rem; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
+    nav button:hover { background: #f1f5f9; color: var(--primary); }
+    nav button.active { background: #eff6ff; color: var(--primary); }
+
+    /* Contingut Principal */
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+    .unit-section { display: none; }
+    .unit-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .btn-admin-toggle:hover { background: rgba(255, 255, 255, 0.3); }
 
-    nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: center; gap: 1rem; padding: 0.75rem; flex-wrap: wrap; }
-    nav button { background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: var(--radius); transition: all 0.2s; }
-    nav button:hover, nav button.active { background: #eff6ff; color: var(--primary-light); }
+    .unit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.8rem; margin-bottom: 2rem; box-shadow: var(--shadow); }
+    h2 { color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .unit-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.8rem; }
 
-    main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .unit-section { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem; }
-    .unit-section.active { display: block; }
+    h3 { font-size: 1.05rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
 
-    h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem; font-size: 1.4rem; }
-    h3 { margin: 1.2rem 0 0.5rem 0; font-size: 1.1rem; color: #334155; }
+    /* Grid de Recursos */
+    .resource-grid { display: grid; gap: 1rem; }
+    
+    .resource-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: #fff; border: 1px solid var(--border); border-radius: 10px; transition: all 0.2s ease; text-decoration: none; color: inherit; }
+    .resource-item:hover { border-color: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    
+    .resource-info { display: flex; align-items: center; gap: 0.8rem; }
+    .badge { font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.025em; }
+    .badge-pdf { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .badge-sim { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
 
-    .card-list { display: grid; gap: 1rem; margin-top: 1rem; }
-    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; display: flex; justify-content: space-between; align-items: center; background: #fff; }
-    .card-info a { font-weight: bold; color: var(--primary-light); text-decoration: none; }
-    .card-info a:hover { text-decoration: underline; }
-    .card-type { font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: bold; text-transform: uppercase; margin-right: 0.5rem; }
-    .card-type.sim { background: #fef3c7; color: #b45309; }
+    .resource-title { font-weight: 600; font-size: 1rem; color: var(--text); }
+    .resource-arrow { color: var(--text-muted); font-size: 1.2rem; transition: transform 0.2s ease; }
+    .resource-item:hover .resource-arrow { transform: translateX(4px); color: var(--primary); }
 
-    .btn-delete { background: #fee2e2; color: #991b1b; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-    .btn-delete:hover { background: #fca5a5; }
+    /* Empty state */
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; }
 
-    /* Elements d'administració (amagats per defecte) */
-    .admin-only { display: none; }
-    body.is-admin .admin-only { display: block; }
-    body.is-admin .admin-only-flex { display: flex; }
-
-    .admin-panel { background: #f1f5f9; border: 1px dashed var(--primary-light); border-radius: var(--radius); padding: 1rem; margin-top: 1.5rem; }
-    .admin-panel h4 { margin-bottom: 0.8rem; color: var(--primary); }
-    .form-group { margin-bottom: 0.8rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .form-group input, .form-group select { padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; flex: 1; min-width: 150px; }
-    .btn-add { background: var(--primary-light); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-add:hover { background: var(--primary); }
-
-    .backup-bar { margin-top: 2rem; padding: 1rem; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .btn-sec { background: #64748b; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-
-    footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 3rem; }
-    footer a { color: inherit; }
+    /* Footer */
+    footer { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.875rem; border-top: 1px solid var(--border); margin-top: 4rem; }
+    footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
 
   <header>
-    <button class="btn-admin-toggle" onclick="toggleAdminMode()" id="adminBtn">⚙️ Edició Professor</button>
     <h1>Mòdul 0233: Electrònica</h1>
     <p>Repositori de Documentació Complementària i Simuladors Online</p>
   </header>
@@ -96,212 +89,124 @@
   <main>
     <!-- UNITAT 1 -->
     <section id="u1" class="unit-section active">
-      <h2>Unitat 1. Electrònica digital no programable</h2>
-      <p>Portes lògiques, àlgebra de Boole, simplificació per Karnaugh, circuits combinacionals i seqüencials bàsics.</p>
-      
-      <h3>Recursos i Material</h3>
-      <div id="list-u1" class="card-list"></div>
+      <div class="unit-card">
+        <h2>⚡ Unitat 1. Electrònica digital no programable</h2>
+        <p class="unit-desc">Portes lògiques, àlgebra de Boole, simplificació per Karnaugh, circuits combinacionals i seqüencials bàsics.</p>
+        
+        <h3>Recursos i Material</h3>
+        <div class="resource-grid">
+          
+          <!-- AFAGEIX ELS TEUS RECURSOS DE LA U1 AQUÍ: -->
+          <!-- Exemple PDF: -->
+          <!-- <a href="U1_Apunts_Portes_Logiques.pdf" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-pdf">PDF</span>
+              <span class="resource-title">Guia de Portes Lògiques i Taules de Veritat</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a> -->
 
-      <div class="admin-panel admin-only">
-        <h4>➕ Afegir recurs a la Unitat 1</h4>
-        <div class="form-group">
-          <select id="type-u1"><option value="pdf">Document PDF</option><option value="sim">Simulador Online</option></select>
-          <input type="text" id="title-u1" placeholder="Títol del recurs">
-          <input type="url" id="url-u1" placeholder="URL / Enllaç">
-          <button class="btn-add" onclick="addResource('u1')">Guardar</button>
+          <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
+
         </div>
       </div>
     </section>
 
     <!-- UNITAT 2 -->
     <section id="u2" class="unit-section">
-      <h2>Unitat 2. Components bàsics i fonts d'alimentació</h2>
-      <p>Components passius, díodes, transistors BJT/MOSFET i disseny de fonts d'alimentació línials.</p>
-      
-      <h3>Recursos i Material</h3>
-      <div id="list-u2" class="card-list"></div>
+      <div class="unit-card">
+        <h2>🔌 Unitat 2. Components bàsics i fonts d'alimentació</h2>
+        <p class="unit-desc">Components passius, díodes, transistors BJT/MOSFET i disseny de fonts d'alimentació línials.</p>
+        
+        <h3>Recursos i Material</h3>
+        <div class="resource-grid">
 
-      <div class="admin-panel admin-only">
-        <h4>➕ Afegir recurs a la Unitat 2</h4>
-        <div class="form-group">
-          <select id="type-u2"><option value="pdf">Document PDF</option><option value="sim">Simulador Online</option></select>
-          <input type="text" id="title-u2" placeholder="Títol del recurs">
-          <input type="url" id="url-u2" placeholder="URL / Enllaç">
-          <button class="btn-add" onclick="addResource('u2')">Guardar</button>
+          <!-- AFAGEIX ELS TEUS RECURSOS DE LA U2 AQUÍ: -->
+          <a href="IOC_U2_ElDiode_v2.pdf" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-pdf">PDF</span>
+              <span class="resource-title">El Díode Semiconductor (Teoria i Exemples)</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a>
+
+          <a href="diode_simulator.html" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-sim">Simulador</span>
+              <span class="resource-title">Simulador de Díode i Rectificador de Mitja Ona</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a>
+
         </div>
       </div>
     </section>
 
     <!-- UNITAT 3 -->
     <section id="u3" class="unit-section">
-      <h2>Unitat 3. Components avançats i circuits temporitzadors</h2>
-      <p>Amplificadors operacionals, temporitzador NE555 (Astable/Monoestable) i electrònica de potència.</p>
-      
-      <h3>Recursos i Material</h3>
-      <div id="list-u3" class="card-list"></div>
+      <div class="unit-card">
+        <h2>⏱️ Unitat 3. Components avançats i circuits temporitzadors</h2>
+        <p class="unit-desc">Amplificadors operacionals, temporitzador NE555 (Astable/Monoestable) i electrònica de potència.</p>
+        
+        <h3>Recursos i Material</h3>
+        <div class="resource-grid">
 
-      <div class="admin-panel admin-only">
-        <h4>➕ Afegir recurs a la Unitat 3</h4>
-        <div class="form-group">
-          <select id="type-u3"><option value="pdf">Document PDF</option><option value="sim">Simulador Online</option></select>
-          <input type="text" id="title-u3" placeholder="Títol del recurs">
-          <input type="url" id="url-u3" placeholder="URL / Enllaç">
-          <button class="btn-add" onclick="addResource('u3')">Guardar</button>
+          <!-- AFAGEIX ELS TEUS RECURSOS DE LA U3 AQUÍ: -->
+          <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
+
         </div>
       </div>
     </section>
 
     <!-- LABORATORI VIRTUAL -->
     <section id="lab" class="unit-section">
-      <h2>Laboratori Virtual i Eines Generals</h2>
-      <p>Accés directe als entorns de simulació i eines generals recomanades per al mòdul.</p>
-      
-      <h3>Recursos Generals</h3>
-      <div id="list-lab" class="card-list"></div>
+      <div class="unit-card">
+        <h2>🛠️ Laboratori Virtual i Eines Generals</h2>
+        <p class="unit-desc">Accés directe als entorns de simulació externs i eines recomanades per al mòdul.</p>
+        
+        <h3>Eines Recomanades</h3>
+        <div class="resource-grid">
 
-      <div class="admin-panel admin-only">
-        <h4>➕ Afegir eina al Laboratori</h4>
-        <div class="form-group">
-          <select id="type-lab"><option value="sim">Simulador Online</option><option value="pdf">Document PDF</option></select>
-          <input type="text" id="title-lab" placeholder="Títol de l'eina">
-          <input type="url" id="url-lab" placeholder="URL / Enllaç">
-          <button class="btn-add" onclick="addResource('lab')">Guardar</button>
+          <a href="https://www.falstad.com/circuit/" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-sim">Simulador</span>
+              <span class="resource-title">Falstad Circuit Simulator</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a>
+
+          <a href="https://circuitverse.org/" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-sim">Simulador</span>
+              <span class="resource-title">CircuitVerse (Lògica Digital)</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a>
+
+          <a href="https://www.tinkercad.com/" target="_blank" class="resource-item">
+            <div class="resource-info">
+              <span class="badge badge-sim">Simulador</span>
+              <span class="resource-title">Tinkercad Circuits</span>
+            </div>
+            <span class="resource-arrow">→</span>
+          </a>
+
         </div>
       </div>
     </section>
-
-    <!-- CÒPIA DE SEGURETAT (NOMS D'ADMINISTRADOR) -->
-    <div class="backup-bar admin-only admin-only-flex">
-      <div>
-        <strong>💾 Gestió de Dades i Backup:</strong>
-        <p style="font-size:0.8rem; color: var(--text-muted);">Descarrega una còpia de seguretat de les teves dades o restaura-la.</p>
-      </div>
-      <div>
-        <button class="btn-sec" onclick="exportBackup()">Exportar Backup (JSON)</button>
-        <button class="btn-sec" onclick="document.getElementById('importFile').click()">Importar Backup</button>
-        <input type="file" id="importFile" style="display:none" onchange="importBackup(event)" accept=".json">
-      </div>
-    </div>
   </main>
 
   <footer>
-    <p>Tot el material propi està subjecte a la llicència <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ca" target="_blank" rel="noopener">Creative Commons Reconeixement-CompartirIgual 4.0 Internacional (CC BY-SA 4.0)</a>.</p>
+    <p>Tot el material d'aquest lloc web està publicat sota llicència <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ca" target="_blank" rel="noopener">Creative Commons Reconeixement-CompartirIgual 4.0 Internacional (CC BY-SA 4.0)</a>.</p>
   </footer>
 
   <script>
-    // CONTRASENYA PER DEFECTE (Pots canviar "professorelectronica" per la contrasenya que vulguis)
-    const ADMIN_PASSWORD = "professorelectronica";
-    let isAdmin = false;
-
-    // Carregar dades
-    let store = JSON.parse(localStorage.getItem('mod0233_data')) || { u1: [], u2: [], u3: [], lab: [] };
-
-    function saveStore() {
-      localStorage.setItem('mod0233_data', JSON.stringify(store));
-      renderAll();
-    }
-
-    function toggleAdminMode() {
-      if (!isAdmin) {
-        const pass = prompt("Introdueix la contrasenya de professor:");
-        if (pass === ADMIN_PASSWORD) {
-          isAdmin = true;
-          document.body.classList.add('is-admin');
-          document.getElementById('adminBtn').textContent = "🔒 Sortir d'Edició";
-          alert("Mode edició activat.");
-        } else if (pass !== null) {
-          alert("Contrasenya incorrecta.");
-        }
-      } else {
-        isAdmin = false;
-        document.body.classList.remove('is-admin');
-        document.getElementById('adminBtn').textContent = "⚙️ Edició Professor";
-      }
-      renderAll();
-    }
-
     function switchTab(tabId) {
       document.querySelectorAll('.unit-section').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       event.target.classList.add('active');
     }
-
-    function addResource(unit) {
-      const type = document.getElementById(`type-${unit}`).value;
-      const title = document.getElementById(`title-${unit}`).value.trim();
-      const url = document.getElementById(`url-${unit}`).value.trim();
-
-      if (!title || !url) {
-        alert('Si us plau, omple el títol i l\'enllaç.');
-        return;
-      }
-
-      store[unit].push({ id: Date.now(), type, title, url });
-      document.getElementById(`title-${unit}`).value = '';
-      document.getElementById(`url-${unit}`).value = '';
-      saveStore();
-    }
-
-    function deleteResource(unit, id) {
-      if (!isAdmin) return;
-      store[unit] = store[unit].filter(item => item.id !== id);
-      saveStore();
-    }
-
-    function renderAll() {
-      ['u1', 'u2', 'u3', 'lab'].forEach(unit => {
-        const listEl = document.getElementById(`list-${unit}`);
-        listEl.innerHTML = '';
-
-        if (store[unit].length === 0) {
-          listEl.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; font-style:italic;">No hi ha cap recurs afegit encara.</p>';
-          return;
-        }
-
-        store[unit].forEach(item => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          
-          let deleteBtnHTML = isAdmin ? `<button class="btn-delete" onclick="deleteResource('${unit}', ${item.id})">Esborrar</button>` : '';
-
-          card.innerHTML = `
-            <div class="card-info">
-              <span class="card-type ${item.type}">${item.type.toUpperCase()}</span>
-              <a href="${item.url}" target="_blank" rel="noopener">${item.title}</a>
-            </div>
-            ${deleteBtnHTML}
-          `;
-          listEl.appendChild(card);
-        });
-      });
-    }
-
-    function exportBackup() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(store, null, 2));
-      const dlAnchorElem = document.createElement('a');
-      dlAnchorElem.setAttribute("href", dataStr);
-      dlAnchorElem.setAttribute("download", `backup_mod0233_${new Date().toISOString().slice(0,10)}.json`);
-      dlAnchorElem.click();
-    }
-
-    function importBackup(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          store = JSON.parse(e.target.result);
-          saveStore();
-          alert('Còpia de seguretat carregada correctament!');
-        } catch (err) {
-          alert('El fitxer seleccionat no és un JSON de backup vàlid.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    renderAll();
   </script>
 </body>
 </html>
