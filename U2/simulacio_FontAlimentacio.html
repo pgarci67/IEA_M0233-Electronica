@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Font d'Alimentació - Mòdul 0233</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dcdfe6;
+      --accent: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #333;
+      margin: 0;
+      padding: 15px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    h1 {
+      color: var(--primary);
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .btn-tour {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-tour:hover { opacity: 0.9; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Etapes Numerades */
+    .stage-card {
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+    .stage-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+    }
+    .stage-header {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .stage-badge {
+      background: var(--primary);
+      color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 0.85rem;
+    }
+    input[type="range"] { width: 120px; }
+    select { padding: 4px; border-radius: 4px; border: 1px solid var(--border); }
+
+    /* Canvas i Oscil·loscopis */
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .card-panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .card-panel h3 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    canvas {
+      width: 100%;
+      background: #1e1e1e;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .btn-zoom {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .btn-zoom.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Tutorial Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-card h2 { margin-top: 0; color: var(--primary); }
+    .modal-card p { line-height: 1.5; color: #444; }
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .btn-sec {
+      background: #e4e7eb;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-prim {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Simulador de Font d'Alimentació - Mòdul 0233</h1>
+    <button class="btn-tour" onclick="startTutorial()">Guia de Funcionament</button>
+  </div>
+
+  <div class="main-grid">
+    <!-- Panell d'Etapes 1 a 4 -->
+    <div class="controls-column">
+      
+      <!-- ETAPA 1 -->
+      <div class="stage-card active" id="stage1">
+        <div class="stage-header">
+          <div class="stage-badge">1</div>
+          <span>Etapa 1: Transformador Reductor</span>
+        </div>
+        <div class="control-row">
+          <span>Tensió Ent. (Vin):</span>
+          <b>230 V (AC)</b>
+        </div>
+        <div class="control-row">
+          <span>Relació Transf. (N):</span>
+          <span>10:1 (23V rms)</span>
+        </div>
+      </div>
+
+      <!-- ETAPA 2 -->
+      <div class="stage-card active" id="stage2">
+        <div class="stage-header">
+          <div class="stage-badge">2</div>
+          <span>Etapa 2: Pont Rectificador</span>
+        </div>
+        <div class="control-row">
+          <span>Configuració:</span>
+          <b>Pont de Graetz (4 díodes)</b>
+        </div>
+        <div class="control-row">
+          <span>Caiguda als díodes:</span>
+          <span>1.4 V (2x 0.7V)</span>
+        </div>
+      </div>
+
+      <!-- ETAPA 3 -->
+      <div class="stage-card active" id="stage3">
+        <div class="stage-header">
+          <div class="stage-badge">3</div>
+          <span>Etapa 3: Filtre per Condensador</span>
+        </div>
+        <div class="control-row">
+          <span>Capacitat (C):</span>
+          <select id="capSelect" onchange="updateSim()">
+            <option value="10">10 uF (Arrissat Gran)</option>
+            <option value="100" selected>100 uF (Arrissat Mitjà)</option>
+            <option value="470">470 uF (Arrissat Petit)</option>
+            <option value="1000">1000 uF (Quasi CC)</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <span>Càrrega (RL):</span>
+          <input type="range" id="rlSlider" min="100" max="2000" step="100" value="500" oninput="updateSim()">
+          <span id="rlVal">500 Ω</span>
+        </div>
+      </div>
+
+      <!-- ETAPA 4 -->
+      <div class="stage-card active" id="stage4">
+        <div class="stage-header">
+          <div class="stage-badge">4</div>
+          <span>Etapa 4: Regulació / Estabilització</span>
+        </div>
+        <div class="control-row">
+          <span>Tipus Regulador:</span>
+          <select id="regSelect" onchange="updateSim()">
+            <option value="zener5">Díode Zener 1N4733A (5.1V)</option>
+            <option value="zener15">Díode Zener 1N4744A (15V)</option>
+            <option value="lm317">Integrat LM317 (Ajustable)</option>
+            <option value="none">Sense Regulació</option>
+          </select>
+        </div>
+        <div class="control-row" id="lm317Row" style="display:none;">
+          <span>Ajust Vout (Potenciòmetre):</span>
+          <input type="range" id="potSlider" min="1.25" max="20" step="0.25" value="5" oninput="updateSim()">
+          <span id="potVal">5.0 V</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Oscil·loscopis -->
+    <div class="canvas-container">
+      
+      <!-- Gràfica 1: Transformador -->
+      <div class="card-panel">
+        <h3>
+          <span>Oscil·loscopi 1: Entrada AC (Xarxa) i Sortida Transformador</span>
+          <small style="color:#888; font-weight:normal;">Entrada (Vermell) / Secundari (Blau)</small>
+        </h3>
+        <canvas id="scope1Canvas" width="700" height="130"></canvas>
+      </div>
+
+      <!-- Gràfica 2: Rectificació, Condensador i Regulació -->
+      <div class="card-panel">
+        <h3>
+          <span>Oscil·loscopi 2: Rectificació, Filtre i Regulació</span>
+          <button id="btnZoom" class="btn-zoom" onclick="toggleZoom()">Zoom AC (Magnifica Arrissat)</button>
+        </h3>
+        <canvas id="scope2Canvas" width="700" height="160"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal per al Tutorial Guiat -->
+<div class="modal-overlay" id="tutorialModal">
+  <div class="modal-card">
+    <h2 id="tutTitle">Pas 1: Transformador</h2>
+    <p id="tutBody">El transformador (Etapa 1) redueix la tensió de 230V de la xarxa elèctrica a 23V d'alterna.</p>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="prevStep()" id="btnPrev">Anterior</button>
+      <button class="btn-sec" onclick="closeTutorial()">Tancar</button>
+      <button class="btn-prim" onclick="nextStep()" id="btnNext">Següent</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let zoomAC = false;
+  let currentStep = 0;
+
+  const steps = [
+    {
+      title: "Etapa 1: Transformador Reductor",
+      body: "La primera etapa redueix la tensió de xarxa de 230V rms (325V de pic, senyal vermell) a una tensió segura de 23V rms (32.5V de pic, senyal blau) mantenint el corrent altern a 50Hz.",
+      setup: () => {
+        document.getElementById('stage1').classList.add('active');
+      }
+    },
+    {
+      title: "Etapa 2: Pont Rectificador de Graetz",
+      body: "La segona etapa utilitza 4 díodes per convertir els semicicles negatius de l'alterna en positius. Observa a l'Oscil·loscopi 2 com l'ona blava es converteix en pulsos unidireccionals.",
+      setup: () => {
+        document.getElementById('stage2').classList.add('active');
+        document.getElementById('capSelect').value = "10";
+        document.getElementById('regSelect').value = "none";
+        updateSim();
+      }
+    },
+    {
+      title: "Etapa 3: Filtre per Condensador (Arrissat)",
+      body: "El condensador es carrega al pic de cada ona i es descarrega lentament a través de la càrrega RL. Aquesta descàrrega forma una denta de serra (línia vermella a l'Oscil·loscopi 2) anomenada tensió d'arrissat.",
+      setup: () => {
+        document.getElementById('capSelect').value = "100";
+        updateSim();
+      }
+    },
+    {
+      title: "Observant l'Arrissat amb el Zoom AC",
+      body: "Prem el botó 'Zoom AC' per eliminar la component contínua i amplificar l'ondulació. Prova a canviar el condensador entre 10uF (arrissat gran) i 1000uF (arrissat molt petit) per veure l'efecte del filtratge.",
+      setup: () => {
+        zoomAC = true;
+        document.getElementById('btnZoom').classList.add('active');
+        updateSim();
+      }
+    },
+    {
+      title: "Etapa 4: Regulació Final de Tensió",
+      body: "L'última etapa elimina completament l'arrissat. Utilitzant un díode Zener o un regulador integrat LM317, s'obté una tensió contínua pura i perfectly estable (línia verda).",
+      setup: () => {
+        zoomAC = false;
+        document.getElementById('btnZoom').classList.remove('active');
+        document.getElementById('regSelect').value = "zener5";
+        updateSim();
+      }
+    }
+  ];
+
+  function startTutorial() {
+    currentStep = 0;
+    showStep();
+    document.getElementById('tutorialModal').classList.add('active');
+  }
+
+  function showStep() {
+    const s = steps[currentStep];
+    document.getElementById('tutTitle').textContent = s.title;
+    document.getElementById('tutBody').textContent = s.body;
+    document.getElementById('btnPrev').style.display = currentStep === 0 ? 'none' : 'block';
+    document.getElementById('btnNext').textContent = currentStep === steps.length - 1 ? 'Finalitzar' : 'Següent';
+    s.setup();
+  }
+
+  function nextStep() {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      showStep();
+    } else {
+      closeTutorial();
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 0) {
+      currentStep--;
+      showStep();
+    }
+  }
+
+  function closeTutorial() {
+    document.getElementById('tutorialModal').classList.remove('active');
+  }
+
+  function toggleZoom() {
+    zoomAC = !zoomAC;
+    document.getElementById('btnZoom').classList.toggle('active', zoomAC);
+    updateSim();
+  }
+
+  function updateSim() {
+    const C = parseFloat(document.getElementById('capSelect').value);
+    const Rl = parseFloat(document.getElementById('rlSlider').value);
+    const reg = document.getElementById('regSelect').value;
+    const pot = parseFloat(document.getElementById('potSlider').value);
+
+    document.getElementById('rlVal').textContent = Rl + " Ω";
+    document.getElementById('potVal').textContent = pot.toFixed(1) + " V";
+    document.getElementById('lm317Row').style.display = (reg === 'lm317') ? 'flex' : 'none';
+
+    drawScope1();
+    drawScope2(C, Rl, reg, pot);
+  }
+
+  function drawScope1() {
+    const canvas = document.getElementById('scope1Canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Grid
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5;
+    for(let x=0; x<canvas.width; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+    for(let y=0; y<canvas.height; y+=30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+    const midY = canvas.height / 2;
+
+    // Ent. Xarxa 230V (Vermell)
+    ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for(let x=0; x<canvas.width; x++) {
+      let y = midY - Math.sin(x * 0.05) * 50;
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // Sortida Trafo 23V (Blau)
+    ctx.strokeStyle = '#4da6ff'; ctx.lineWidth = 2; ctx.beginPath();
+    for(let x=0; x<canvas.width; x++) {
+      let y = midY - Math.sin(x * 0.05) * 15;
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  function drawScope2(C, Rl, reg, pot) {
+    const canvas = document.getElementById('scope2Canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Grid
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5;
+    for(let x=0; x<canvas.width; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+    for(let y=0; y<canvas.height; y+=30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+    const baseY = canvas.height - 15;
+    const Vmax = 31.1; // 32.5V - 1.4V
+    const scaleY = 3.5;
+
+    // 1. Ona Rectificada sense Filtre (Blau clar)
+    ctx.strokeStyle = 'rgba(77, 166, 255, 0.4)'; ctx.setLineDash([3,3]); ctx.lineWidth = 1.5; ctx.beginPath();
+    for(let x=0; x<canvas.width; x++) {
+      let rawVal = Math.abs(Math.sin(x * 0.05)) * Vmax;
+      let y = baseY - (rawVal * scaleY);
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Càlcul d'Arrissat
+    const T_period = 62.8;
+    const I_load = Vmax / Rl;
+    const V_ripple = Math.min(Vmax * 0.8, (I_load / (100 * (C * 1e-6))) * 0.15);
+
+    // 2. Tensió al Condensador amb Descàrrega (Vermell)
+    ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 2; ctx.beginPath();
+    let currentV = Vmax;
+    for(let x=0; x<canvas.width; x++) {
+      let acVal = Math.abs(Math.sin(x * 0.05)) * Vmax;
+      if (acVal >= currentV) {
+        currentV = acVal;
+      } else {
+        currentV -= (V_ripple / T_period);
+        if (currentV < 0) currentV = 0;
+      }
+
+      let dispV = currentV;
+      if (zoomAC) {
+        dispV = (currentV - (Vmax - V_ripple/2)) * 8 + 15;
+      }
+
+      let y = baseY - (dispV * scaleY);
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // 3. Tensió Regulada Final (Verda)
+    if (reg !== 'none') {
+      let Vtarget = 5.0;
+      if (reg === 'zener15') Vtarget = 15.0;
+      if (reg === 'lm317') Vtarget = pot;
+
+      ctx.strokeStyle = '#28a745'; ctx.lineWidth = 2.5; ctx.beginPath();
+      for(let x=0; x<canvas.width; x++) {
+        let dispV = Vtarget;
+        if (zoomAC) {
+          dispV = (Vtarget - (Vmax - V_ripple/2)) * 8 + 15;
+        }
+        let y = baseY - (dispV * scaleY);
+        if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // Inicialització
+  updateSim();
+</script>
+
+</body>
+</html>

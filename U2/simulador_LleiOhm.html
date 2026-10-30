@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador - La Llei d'Ohm i Diferència de Potencial</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dcdfe6;
+      --accent: #28a745;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    h1 {
+      color: var(--primary);
+      margin-top: 0;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      font-size: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .control-group {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .control-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: var(--primary);
+    }
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    input[type="range"] { width: 140px; }
+    .display-panel {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 15px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    canvas {
+      width: 100%;
+      background: #252526;
+      border-radius: 6px;
+    }
+    .formula-card {
+      background: #f0f4f8;
+      border-left: 4px solid var(--primary);
+      padding: 12px;
+      border-radius: 4px;
+      color: #333;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Simulador de la Llei d'Ohm: Diferència de Potencial</h1>
+
+  <div class="grid">
+    <!-- Controls -->
+    <div>
+      <div class="control-group">
+        <label>Font Esquerra (V1)</label>
+        <div class="control-row">
+          <input type="range" id="v1Slider" min="0" max="24" step="1" value="12" oninput="updateSim()">
+          <b id="v1Val">12 V</b>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Font Dreta (V2)</label>
+        <div class="control-row">
+          <input type="range" id="v2Slider" min="0" max="24" step="1" value="5" oninput="updateSim()">
+          <b id="v2Val">5 V</b>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Resistència (R1)</label>
+        <div class="control-row">
+          <input type="range" id="rSlider" min="1" max="100" step="1" value="10" oninput="updateSim()">
+          <b id="rVal">10 Ω</b>
+        </div>
+      </div>
+
+      <div class="formula-card" id="formulaBox">
+        <!-- Càlcul pas a pas -->
+      </div>
+    </div>
+
+    <!-- Canvas Circuit -->
+    <div class="display-panel">
+      <canvas id="circuitCanvas" width="500" height="240"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateSim() {
+    const v1 = parseFloat(document.getElementById('v1Slider').value);
+    const v2 = parseFloat(document.getElementById('v2Slider').value);
+    const r = parseFloat(document.getElementById('rSlider').value);
+
+    document.getElementById('v1Val').textContent = v1 + " V";
+    document.getElementById('v2Val').textContent = v2 + " V";
+    document.getElementById('rVal').textContent = r + " Ω";
+
+    const vDiff = v1 - v2;
+    const i = vDiff / r;
+    const imA = Math.abs(i * 1000);
+
+    let dirText = "D'esquerra a dreta (V1 > V2)";
+    if (vDiff < 0) dirText = "De dreta a esquerra (V2 > V1)";
+    if (vDiff === 0) dirText = "Sense circulació de corrent (V1 = V2)";
+
+    document.getElementById('formulaBox').innerHTML = `
+      <b>Càlcul pas a pas:</b><br>
+      Caiguda de tensió: V = V1 - V2 = ${v1} - ${v2} = <b>${vDiff.toFixed(1)} V</b><br>
+      Intensitat: I = V / R = ${vDiff.toFixed(1)} / ${r} = <b>${Math.abs(i).toFixed(3)} A (${imA.toFixed(1)} mA)</b><br>
+      <em>Sentit: ${dirText}</em>
+    `;
+
+    drawCircuit(v1, v2, r, i);
+  }
+
+  function drawDCSource(ctx, x, y, label, val) {
+    ctx.save();
+    // fons net per a la font
+    ctx.fillStyle = '#252526';
+    ctx.fillRect(x - 20, y - 25, 40, 50);
+
+    // Línia superior llarga (Positiu +)
+    ctx.strokeStyle = '#ff4d4d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x - 18, y - 10);
+    ctx.lineTo(x + 18, y - 10);
+    ctx.stroke();
+
+    // Línia inferior curta i més gruixuda (Negatiu -)
+    ctx.strokeStyle = '#aaaaaa';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y + 10);
+    ctx.lineTo(x + 10, y + 10);
+    ctx.stroke();
+
+    // Textos
+    ctx.fillStyle = '#ff4d4d';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('+', x + 22, y - 8);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label + ': ' + val + 'V', x, y - 32);
+
+    ctx.restore();
+  }
+
+  function drawCircuit(v1, v2, r, i) {
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const leftX = 80;
+    const rightX = 420;
+    const topY = 60;
+    const bottomY = 180;
+
+    // Bucle del circuit
+    ctx.strokeStyle = '#4da6ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY);
+    ctx.lineTo(rightX, topY);
+    ctx.lineTo(rightX, bottomY);
+    ctx.lineTo(leftX, bottomY);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Dibuix de les fonts de CC
+    drawDCSource(ctx, leftX, (topY + bottomY) / 2, 'V1', v1);
+    drawDCSource(ctx, rightX, (topY + bottomY) / 2, 'V2', v2);
+
+    // Resistència R1 (al tram superior)
+    const rWidth = 80;
+    const rHeight = 24;
+    const rX = (leftX + rightX) / 2 - rWidth / 2;
+    const rY = topY - rHeight / 2;
+
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(rX, rY, rWidth, rHeight);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rX, rY, rWidth, rHeight);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('R1 = ' + r + ' Ω', (leftX + rightX) / 2, topY + 4);
+
+    // Conexió a terra
+    const midX = (leftX + rightX) / 2;
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(midX, bottomY);
+    ctx.lineTo(midX, bottomY + 20);
+    ctx.moveTo(midX - 15, bottomY + 20);
+    ctx.lineTo(midX + 15, bottomY + 20);
+    ctx.moveTo(midX - 10, bottomY + 25);
+    ctx.lineTo(midX + 10, bottomY + 25);
+    ctx.moveTo(midX - 5, bottomY + 30);
+    ctx.lineTo(midX + 5, bottomY + 30);
+    ctx.stroke();
+
+    // Dibuix de la Fletxa d'Intensitat (si I != 0)
+    if (Math.abs(i) > 0.0001) {
+      ctx.save();
+      const absI = Math.min(Math.abs(i), 2.4); // Límit d'escalat visual
+      const arrowWidth = Math.max(3, absI * 8); // Amplada del cos segons la intensitat
+      const headSize = arrowWidth * 2.2 + 6;   // Mida de la punta proporcional
+
+      ctx.fillStyle = '#28a745';
+      ctx.strokeStyle = '#1e7e34';
+      ctx.lineWidth = 1;
+
+      const arrowY = topY - 32;
+      const startX = i > 0 ? leftX + 20 : rightX - 20;
+      const endX = i > 0 ? rightX - 20 : leftX + 20;
+      const dir = i > 0 ? 1 : -1;
+
+      // Cos de la fletxa
+      ctx.beginPath();
+      ctx.fillRect(
+        i > 0 ? startX : endX,
+        arrowY - arrowWidth / 2,
+        Math.abs(endX - startX) - headSize,
+        arrowWidth
+      );
+
+      // Punta de la fletxa
+      ctx.beginPath();
+      ctx.moveTo(endX, arrowY);
+      ctx.lineTo(endX - dir * headSize, arrowY - headSize / 1.3);
+      ctx.lineTo(endX - dir * headSize, arrowY + headSize / 1.3);
+      ctx.closePath();
+      ctx.fill();
+
+      // Text explicatiu de la fletxa
+      ctx.fillStyle = '#28a745';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('I = ' + Math.abs(i * 1000).toFixed(0) + ' mA', midX, arrowY - arrowWidth - 6);
+
+      ctx.restore();
+    }
+  }
+
+  // Inicialització
+  updateSim();
+</script>
+
+</body>
+</html>

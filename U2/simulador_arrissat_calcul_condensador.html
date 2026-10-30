@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Senzill d'Arrissat i Condensador - Mòdul 0233</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dcdfe6;
+      --danger: #dc3545;
+      --accent: #28a745;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    h1 {
+      color: var(--primary);
+      margin-top: 0;
+      font-size: 1.4rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .panel h3 {
+      margin-top: 0;
+      color: var(--primary);
+      font-size: 1.05rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .val-display {
+      float: right;
+      color: var(--primary);
+      font-weight: bold;
+    }
+    canvas {
+      width: 100%;
+      background: #1e1e1e;
+      border-radius: 6px;
+      display: block;
+    }
+    .formula-box {
+      background: #e6f0fa;
+      border: 1px solid #b8d5f2;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+    .formula-box h4 {
+      margin: 0 0 6px 0;
+      color: var(--primary);
+    }
+    .btn-zoom {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      float: right;
+    }
+    .btn-zoom.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .metric-card {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    .metric-card .title { font-size: 0.75rem; color: #666; font-weight: 600; }
+    .metric-card .val { font-size: 1rem; font-weight: bold; color: var(--primary); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Simulador d'Arrissat i Càlcul del Condensador</h1>
+  
+  <div class="grid">
+    <!-- Panell de Controls -->
+    <div class="panel">
+      <h3>Controls del Circuit</h3>
+
+      <div class="control-group">
+        <label for="capSlider">Condensador (C): <span class="val-display" id="capVal">100 µF</span></label>
+        <input type="range" id="capSlider" min="10" max="500" step="10" value="100" oninput="updateSim()">
+      </div>
+
+      <div class="control-group">
+        <label for="rlSlider">Resistència Càrrega (RL): <span class="val-display" id="rlVal">1000 Ω</span></label>
+        <input type="range" id="rlSlider" min="200" max="2000" step="100" value="1000" oninput="updateSim()">
+      </div>
+
+      <div class="control-group">
+        <label>Freqüència de l'Arrissat (f): <span class="val-display">100 Hz</span></label>
+        <small style="color:#666;">Rectificador Ona Completa (2x 50Hz)</small>
+      </div>
+
+      <!-- Fórmula explicativa -->
+      <div class="formula-box">
+        <h4>Fórmula de l'Arrissat:</h4>
+        <div><strong>Vr = I / (f · C)</strong></div>
+        <div style="margin-top:6px; font-size:0.82rem; color:#444;" id="formulaCalc">
+          Vr = 29.4 mA / (100 Hz · 100 µF) = 2.94 V
+        </div>
+      </div>
+    </div>
+
+    <!-- Panell de Gràfica i Resultats -->
+    <div class="panel">
+      <h3>
+        Oscil·loscopi Virtual
+        <button id="btnZoom" class="btn-zoom" onclick="toggleZoom()">Zoom AC (Magnifica Arrissat)</button>
+      </h3>
+      
+      <canvas id="scopeCanvas" width="500" height="180"></canvas>
+
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="title">Tensió Arrissat (Vr)</div>
+          <div class="val" id="vrDisp" style="color:var(--danger);">2.94 V</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Corrent Càrrega (I)</div>
+          <div class="val" id="iDisp">29.4 mA</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Tensió Màxima (Vpic)</div>
+          <div class="val">31.1 V</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Tensió Mínima (Vmin)</div>
+          <div class="val" id="vminDisp">28.16 V</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let zoomAC = false;
+
+  function toggleZoom() {
+    zoomAC = !zoomAC;
+    document.getElementById('btnZoom').classList.toggle('active', zoomAC);
+    updateSim();
+  }
+
+  function updateSim() {
+    const C_uF = parseFloat(document.getElementById('capSlider').value);
+    const Rl = parseFloat(document.getElementById('rlSlider').value);
+    const C = C_uF * 1e-6;
+    const f = 100; // 100 Hz per ona completa
+    const Vmax = 31.1; // 32.5V - 1.4V dels diodes
+
+    document.getElementById('capVal').textContent = C_uF + ' µF';
+    document.getElementById('rlVal').textContent = Rl + ' Ω';
+
+    // Càlculs teòrics
+    const I_amp = Vmax / Rl;
+    const I_mA = I_amp * 1000;
+    
+    // Vr = I / (f * C)
+    let Vr = I_amp / (f * C);
+    if (Vr > Vmax * 0.8) Vr = Vmax * 0.8; // Límit físic
+
+    const Vmin = Vmax - Vr;
+
+    // Actualitzar etiquetes
+    document.getElementById('vrDisp').textContent = Vr.toFixed(2) + ' V';
+    document.getElementById('iDisp').textContent = I_mA.toFixed(1) + ' mA';
+    document.getElementById('vminDisp').textContent = Vmin.toFixed(2) + ' V';
+
+    document.getElementById('formulaCalc').innerHTML = 
+      `Vr = ${I_mA.toFixed(1)} mA / (100 Hz · ${C_uF} µF)<br><strong>Vr = ${Vr.toFixed(2)} V</strong>`;
+
+    drawScope(Vmax, Vr);
+  }
+
+  function drawScope(Vmax, Vr) {
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Dibuixar Reixeta
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+    for (let y = 0; y < canvas.height; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+    const baseY = canvas.height - 15;
+    const scaleY = 4.5;
+
+    // 1. Dibuixar Ona Rectificada de Fons (Blau discontinu)
+    ctx.strokeStyle = 'rgba(77, 166, 255, 0.35)';
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 0; x < canvas.width; x++) {
+      let vRaw = Math.abs(Math.sin(x * 0.05)) * Vmax;
+      let y = baseY - (vRaw * scaleY);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 2. Dibuixar Ona de Descàrrega del Condensador (Vermell)
+    ctx.strokeStyle = '#ff4d4d';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    const T_px = 62.8; // Període en px
+    let currentV = Vmax;
+
+    for (let x = 0; x < canvas.width; x++) {
+      let acVal = Math.abs(Math.sin(x * 0.05)) * Vmax;
+      
+      if (acVal >= currentV) {
+        currentV = acVal;
+      } else {
+        currentV -= (Vr / T_px);
+        if (currentV < 0) currentV = 0;
+      }
+
+      let dispV = currentV;
+      if (zoomAC) {
+        // Zoom AC: centra l'arrissat i l'amplifica per 6
+        dispV = (currentV - (Vmax - Vr / 2)) * 6 + 15;
+      }
+
+      let y = baseY - (dispV * scaleY);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Execució inicial
+  updateSim();
+</script>
+
+</body>
+</html>
