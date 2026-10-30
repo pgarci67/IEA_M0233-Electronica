@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Regulació amb Díode Zener - Mòdul 0233</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dcdfe6;
+      --danger: #dc3545;
+      --success: #28a745;
+      --warning: #ffc107;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 950px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    h1 {
+      color: var(--primary);
+      margin-top: 0;
+      font-size: 1.5rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 0.85rem;
+      margin-top: -5px;
+      margin-bottom: 15px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .panel h3 {
+      margin-top: 0;
+      color: var(--primary);
+      font-size: 1.1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      font-size: 0.88rem;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+    }
+    .val-display {
+      float: right;
+      color: var(--primary);
+      font-weight: bold;
+    }
+    canvas {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .status-box {
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    .status-ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-warn { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .status-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .metric-card {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    .metric-card .title { font-size: 0.78rem; color: #666; font-weight: 600; }
+    .metric-card .val { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-top: 3px; }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 5px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #0b3a63; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Simulador de Regulació de Tensió amb Díode Zener</h1>
+  <div class="subtitle">Mòdul 0233 Electrònica - CFGM Instal·lacions Elèctriques i Automàtiques</div>
+  
+  <div class="grid">
+    <!-- Panell de Control -->
+    <div class="panel">
+      <h3>Paràmetres del Circuit</h3>
+      
+      <div class="control-group">
+        <label for="zenerSelect">Model de Díode Zener:
+          <select id="zenerSelect">
+            <option value="5.1">1N4733A (Vz = 5.1 V)</option>
+            <option value="9.1">1N4739A (Vz = 9.1 V)</option>
+            <option value="12.0">1N4742A (Vz = 12.0 V)</option>
+            <option value="15.0" selected>1N4744A (Vz = 15.0 V) [Exemple Teoria]</option>
+            <option value="18.0">1N4746A (Vz = 18.0 V)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="vinRange">Tensió d'entrada (Vin): <span class="val-display" id="vinVal">20.0 V</span></label>
+        <input type="range" id="vinRange" min="0" max="35" step="0.5" value="20">
+      </div>
+
+      <div class="control-group">
+        <label for="rpRange">Resistència de protecció (Rp): <span class="val-display" id="rpVal">150 Ω</span></label>
+        <input type="range" id="rpRange" min="10" max="1000" step="10" value="150">
+        <button class="btn" onclick="autoCalcRp()">Calcula Rp Recomanada</button>
+      </div>
+
+      <div class="control-group">
+        <label for="rlRange">Resistència de càrrega (RL): <span class="val-display" id="rlVal">1000 Ω</span></label>
+        <input type="range" id="rlRange" min="50" max="2000" step="50" value="1000">
+      </div>
+    </div>
+
+    <!-- Panell Esquema i Resultats -->
+    <div class="panel">
+      <h3>Esquema i Mesures</h3>
+      <canvas id="circuitCanvas" width="400" height="200"></canvas>
+
+      <div id="statusBox" class="status-box status-ok">Díode Zener en regulació correcta</div>
+
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="title">Tensió de sortida (Vout)</div>
+          <div class="val" id="voutDisp">0.0 V</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Corrent pel Zener (Iz)</div>
+          <div class="val" id="izDisp">0.0 mA</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Potència al Zener (Pz)</div>
+          <div class="val" id="pzDisp">0.0 mW</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Corrent a la càrrega (IL)</div>
+          <div class="val" id="ilDisp">0.0 mA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Elements DOM
+  const vinRange = document.getElementById('vinRange');
+  const rpRange = document.getElementById('rpRange');
+  const rlRange = document.getElementById('rlRange');
+  const zenerSelect = document.getElementById('zenerSelect');
+
+  const vinVal = document.getElementById('vinVal');
+  const rpVal = document.getElementById('rpVal');
+  const rlVal = document.getElementById('rlVal');
+
+  const voutDisp = document.getElementById('voutDisp');
+  const izDisp = document.getElementById('izDisp');
+  const pzDisp = document.getElementById('pzDisp');
+  const ilDisp = document.getElementById('ilDisp');
+  const statusBox = document.getElementById('statusBox');
+
+  const canvas = document.getElementById('circuitCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function updateSimulation() {
+    const Vin = parseFloat(vinRange.value);
+    const Rp = parseFloat(rpRange.value);
+    const Rl = parseFloat(rlRange.value);
+    const Vz = parseFloat(zenerSelect.value);
+    const Iz_min = 0.005; // 5mA corrent mínim de regulació
+    const Pz_max = 1.0;   // 1W potència màxima admissible
+
+    vinVal.textContent = Vin.toFixed(1) + ' V';
+    rpVal.textContent = Rp + ' Ω';
+    rlVal.textContent = Rl + ' Ω';
+
+    // Càlculs de CC
+    const Vth = Vin * (Rl / (Rp + Rl));
+    const Rth = (Rp * Rl) / (Rp + Rl);
+
+    let Vout = 0;
+    let Iz = 0;
+    let Il = 0;
+    let Pz = 0;
+    let status = '';
+    let statusClass = '';
+
+    if (Vth < Vz) {
+      // El Zener no arriba a la tensió de ruptura (bloquejat)
+      Vout = Vth;
+      Iz = 0;
+      Il = Vout / Rl;
+      Pz = 0;
+      status = 'Fora de regulació (Tensió insuficient)';
+      statusClass = 'status-warn';
+    } else {
+      // El Zener entra en la zona d'avalot
+      Iz = (Vth - Vz) / Rth;
+      Vout = Vz;
+      Il = Vout / Rl;
+      Pz = Vz * Iz;
+
+      if (Iz < Iz_min) {
+        status = 'Fora de regulació (Corrent Zener molt baix)';
+        statusClass = 'status-warn';
+      } else if (Pz > Pz_max) {
+        status = 'ATENCIÓ: Sobreescalfament! (Potència > 1 W)';
+        statusClass = 'status-danger';
+      } else {
+        status = 'Díode Zener en regulació correcta';
+        statusClass = 'status-ok';
+      }
+    }
+
+    // Actualitzar etiquetes de mesures
+    voutDisp.textContent = Vout.toFixed(2) + ' V';
+    izDisp.textContent = (Iz * 1000).toFixed(1) + ' mA';
+    pzDisp.textContent = (Pz * 1000).toFixed(0) + ' mW';
+    ilDisp.textContent = (Il * 1000).toFixed(1) + ' mA';
+
+    statusBox.textContent = status;
+    statusBox.className = 'status-box ' + statusClass;
+
+    drawCircuit(Vin, Vout, Iz > 0);
+  }
+
+  function autoCalcRp() {
+    const Vin = parseFloat(vinRange.value);
+    const Vz = parseFloat(zenerSelect.value);
+    const Rl = parseFloat(rlRange.value);
+    const Il = Vz / Rl;
+    const Iz_min = 0.010; // 10 mA de seguretat
+
+    if (Vin <= Vz) {
+      alert('La tensió d\'entrada (Vin) ha de ser superior a la tensió Zener (Vz) per poder calcular la resistència de protecció.');
+      return;
+    }
+
+    // Rp = (Vin - Vz) / (Iz_min + IL)
+    let Rp_rec = (Vin - Vz) / (Iz_min + Il);
+    rpRange.value = Math.round(Rp_rec);
+    updateSimulation();
+  }
+
+  function drawCircuit(Vin, Vout, isRegulating) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#333';
+
+    // 1. Tram superior del conductors
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(150, 50); // cap a Rp
+    ctx.stroke();
+
+    // Dibuixar Resistència Rp
+    ctx.beginPath();
+    ctx.rect(150, 42, 40, 16);
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('Rp', 162, 35);
+
+    // Des de Rp cap a la branca central i la càrrega
+    ctx.beginPath();
+    ctx.moveTo(190, 50);
+    ctx.lineTo(270, 50);
+    ctx.lineTo(340, 50);
+    ctx.stroke();
+
+    // 2. Tram inferior del conductor (Massa)
+    ctx.beginPath();
+    ctx.moveTo(50, 160);
+    ctx.lineTo(340, 160);
+    ctx.stroke();
+
+    // 3. Símbol clàssic de la Font de CC (Bateria) a l'esquerra
+    // Línia de connexió superior a la bateria
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(50, 93);
+    ctx.stroke();
+
+    // Pol Positiu (línia més llarga i prima a dalt)
+    ctx.beginPath();
+    ctx.moveTo(35, 93);
+    ctx.lineTo(65, 93);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Pol Negatiu (línia més curta i gruixuda a baix)
+    ctx.beginPath();
+    ctx.moveTo(42, 107);
+    ctx.lineTo(58, 107);
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Restaurar gruix de línia estàndard
+    ctx.lineWidth = 2;
+
+    // Línia de connexió inferior des de la bateria a massa
+    ctx.beginPath();
+    ctx.moveTo(50, 107);
+    ctx.lineTo(50, 160);
+    ctx.stroke();
+
+    // Textos de polaritat i nom de la font
+    ctx.fillStyle = '#dc3545';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('+', 58, 88);
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('-', 59, 122);
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('Vin', 12, 104);
+
+    // 4. Branca central: Díode Zener (x = 270)
+    ctx.beginPath();
+    ctx.moveTo(270, 50); ctx.lineTo(270, 85);
+    ctx.moveTo(270, 125); ctx.lineTo(270, 160);
+    ctx.stroke();
+
+    // Triangle del Zener
+    ctx.fillStyle = isRegulating ? '#28a745' : '#666';
+    ctx.beginPath();
+    ctx.moveTo(260, 115);
+    ctx.lineTo(280, 115);
+    ctx.lineTo(270, 95);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Càtode Zener amb patetes en Z
+    ctx.strokeStyle = isRegulating ? '#28a745' : '#333';
+    ctx.beginPath();
+    ctx.moveTo(258, 95); ctx.lineTo(282, 95);
+    ctx.moveTo(258, 95); ctx.lineTo(258, 100); // pestanya esquerra
+    ctx.moveTo(282, 95); ctx.lineTo(282, 90);  // pestanya dreta
+    ctx.stroke();
+    ctx.strokeStyle = '#333';
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('Zener', 253, 140);
+
+    // 5. Branca dreta: Resistència de Càrrega RL (x = 340)
+    ctx.beginPath();
+    ctx.moveTo(340, 50); ctx.lineTo(340, 85);
+    ctx.rect(332, 85, 16, 35);
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(340, 120); ctx.lineTo(340, 160);
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('RL', 355, 108);
+
+    // Punts de connexió (nodes)
+    ctx.fillStyle = '#0f4c81';
+    [ [270,50], [270,160], [340,50], [340,160] ].forEach(p => {
+      ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 2*Math.PI); ctx.fill();
+    });
+  }
+
+  // Assignació d'esdeveniments als controls
+  [vinRange, rpRange, rlRange, zenerSelect].forEach(el => {
+    el.addEventListener('input', updateSimulation);
+  });
+
+  // Execució inicial
+  updateSimulation();
+</script>
+
+</body>
+</html>
