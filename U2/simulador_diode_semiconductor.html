@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ca" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador del Díode Semiconductor - Mòdul 0233</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#035485',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .grid-bg {
+            background-size: 20px 20px;
+            background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-100 bg-slate-950 custom-scrollbar">
+
+    <!-- HEADER / TITLE BAR -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-brand-600/20 border border-brand-500/30 rounded-xl text-brand-400">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-md">EE10 / Mòdul 0233</span>
+                        <span class="text-[10px] font-medium text-slate-400">v2.0</span>
+                    </div>
+                    <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-tight">Simulador del Díode Semiconductor</h1>
+                </div>
+            </div>
+
+            <!-- MODE SWITCHER -->
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+                <button id="btn-mode-dc" onclick="setMode('dc')" class="flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-brand-600 text-white shadow-sm">
+                    <i class="fa-solid fa-car-battery"></i> Corrent Continu (CC)
+                </button>
+                <button id="btn-mode-ac" onclick="setMode('ac')" class="flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wave-square"></i> Rectificador (CA)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- ========================================== -->
+        <!-- MODE 1: DC ANALYSIS (CORRENT CONTINU)      -->
+        <!-- ========================================== -->
+        <div id="view-dc" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- CONTROLS PANEL (DC) -->
+                <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-lg">
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-sliders text-brand-400"></i> Paràmetres del Circuit CC
+                    </h2>
+
+                    <!-- Voltage Source V1 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-medium text-slate-300">Font de Tensió ($V_1$)</label>
+                            <span id="dc-v1-val" class="font-mono font-bold text-brand-400">12.0 V</span>
+                        </div>
+                        <input type="range" id="dc-v1-input" min="-20" max="20" step="0.5" value="12" oninput="updateDC()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>-20V</span>
+                            <span>0V</span>
+                            <span>+20V</span>
+                        </div>
+                    </div>
+
+                    <!-- Diode Orientation -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-300">Orientació del Díode ($D_1$)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="dc-orient-direct" onclick="setDCOrientation(true)" class="px-3 py-2 rounded-xl text-xs font-medium border border-brand-500/50 bg-brand-500/10 text-brand-300 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-right"></i> Directa (A &rarr; K)
+                            </button>
+                            <button id="dc-orient-inverse" onclick="setDCOrientation(false)" class="px-3 py-2 rounded-xl text-xs font-medium border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-left"></i> Inversa (K &larr; A)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Diode Model Selector -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-300">Model teòric del Díode</label>
+                        <select id="dc-model-input" onchange="updateDC()" class="w-full text-xs font-medium bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="0.6">Model Real / Tensió llindar (VD ≈ 0,6 V - 0,7 V)</option>
+                            <option value="0.0">Model Ideal (VD = 0 V - Curtcircuit)</option>
+                        </select>
+                    </div>
+
+                    <!-- Load Resistance R1 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-medium text-slate-300">Resistència de càrrega ($R_1$)</label>
+                            <span id="dc-r1-val" class="font-mono font-bold text-brand-400">1000 Ω</span>
+                        </div>
+                        <input type="range" id="dc-r1-input" min="100" max="5000" step="100" value="1000" oninput="updateDC()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>100 Ω</span>
+                            <span>1 kΩ</span>
+                            <span>5 kΩ</span>
+                        </div>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div id="dc-status-card" class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase tracking-wider">Estat del Díode</span>
+                            <span id="dc-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-slate-950">CONDUCTOR</span>
+                        </div>
+                        <p id="dc-status-desc" class="text-xs text-emerald-200/80">Polarització Directa ($V_A > V_K$). El díode deixa passar el corrent.</p>
+                    </div>
+                </div>
+
+                <!-- SCHEMATIC & MEASUREMENTS (DC) -->
+                <div class="lg:col-span-8 space-y-6">
+                    <!-- Interactive Schematic Canvas -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg grid-bg relative overflow-hidden flex flex-col items-center justify-center min-h-[320px]">
+                        <canvas id="dc-canvas" width="600" height="280" class="max-w-full h-auto"></canvas>
+                        
+                        <!-- Realtime Multimeter Displays Overlay -->
+                        <div class="w-full grid grid-cols-3 gap-2 mt-2 pt-3 border-t border-slate-800/80">
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 font-semibold block uppercase">Voltímetre Font (U1)</span>
+                                <span id="dc-readout-v1" class="text-sm sm:text-base font-mono font-bold text-emerald-400">12.000 V</span>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 font-semibold block uppercase">Voltímetre Càrrega (U2)</span>
+                                <span id="dc-readout-vr" class="text-sm sm:text-base font-mono font-bold text-emerald-400">11.400 V</span>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 font-semibold block uppercase">Corrent Circuit (I)</span>
+                                <span id="dc-readout-i" class="text-sm sm:text-base font-mono font-bold text-amber-400">11.40 mA</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mathematical Step-by-Step Breakdown -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-calculator text-brand-400"></i> Anàlisi Matemàtic (Llei d'Ohm i Kirchhoff)
+                        </h3>
+                        <div id="dc-math-box" class="font-mono text-xs text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 leading-relaxed">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODE 2: AC HALF-WAVE RECTIFIER             -->
+        <!-- ========================================== -->
+        <div id="view-ac" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- CONTROLS PANEL (AC) -->
+                <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-lg">
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-sliders text-brand-400"></i> Paràmetres del Rectificador CA
+                    </h2>
+
+                    <!-- AC Voltage Source (Vrms) -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-medium text-slate-300">Tensió eficaç ($V_{\text{rms}}$)</label>
+                            <span id="ac-vrms-val" class="font-mono font-bold text-brand-400">5.0 Vrms</span>
+                        </div>
+                        <input type="range" id="ac-vrms-input" min="1" max="12" step="0.5" value="5" oninput="updateAC()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>1 Vrms</span>
+                            <span>$V_{\text{pic}} \approx 7.07\text{V}$</span>
+                            <span>12 Vrms</span>
+                        </div>
+                    </div>
+
+                    <!-- Frequency f -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-medium text-slate-300">Freqüència ($f$)</label>
+                            <span id="ac-freq-val" class="font-mono font-bold text-brand-400">50 Hz</span>
+                        </div>
+                        <input type="range" id="ac-freq-input" min="10" max="100" step="5" value="50" oninput="updateAC()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                    </div>
+
+                    <!-- Diode Model Selector AC -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-300">Model de Díode</label>
+                        <select id="ac-model-input" onchange="updateAC()" class="w-full text-xs font-medium bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="0.6">Silici Real (VD = 0,6 V caiguda en directe)</option>
+                            <option value="0.0">Díode Ideal (VD = 0 V)</option>
+                        </select>
+                    </div>
+
+                    <!-- Load Resistance R1 AC -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-medium text-slate-300">Resistència de càrrega ($R_1$)</label>
+                            <span id="ac-r1-val" class="font-mono font-bold text-brand-400">1000 Ω</span>
+                        </div>
+                        <input type="range" id="ac-r1-input" min="200" max="2000" step="100" value="1000" oninput="updateAC()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                    </div>
+
+                    <!-- Oscilloscope Visual Controls -->
+                    <div class="pt-2 border-t border-slate-800 space-y-3">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Control de l'Oscil·loscopi</label>
+                        <div class="flex items-center justify-between gap-2">
+                            <button id="ac-pause-btn" onclick="toggleACPause()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-pause"></i> Pausar Senyal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OSCILLOSCOPE CANVAS & DISPLAY -->
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+                        <!-- Oscilloscope Screen Header -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2 text-xs font-bold">
+                                <span class="flex items-center gap-1.5 text-red-400"><i class="fa-solid fa-minus text-lg"></i> Canal A ($V_{\text{in}}$)</span>
+                                <span class="text-slate-600">|</span>
+                                <span class="flex items-center gap-1.5 text-sky-400"><i class="fa-solid fa-minus text-lg"></i> Canal B ($V_R$ Sortida)</span>
+                            </div>
+                            <div class="text-[11px] font-mono text-slate-400 flex gap-3">
+                                <span>Timebase: <strong class="text-slate-200">10 ms/Div</strong></span>
+                                <span>Scale: <strong class="text-slate-200">5 V/Div</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Screen -->
+                        <div class="relative bg-black rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center">
+                            <canvas id="ac-canvas" width="650" height="300" class="w-full h-auto block"></canvas>
+                        </div>
+
+                        <!-- Readout Legend -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs text-center">
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Vpic Entrada</span>
+                                <span id="ac-vpic-in" class="font-bold text-red-400">7.07 V</span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Vpic Sortida</span>
+                                <span id="ac-vpic-out" class="font-bold text-sky-400">6.47 V</span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Ipic Màxima</span>
+                                <span id="ac-ipic-out" class="font-bold text-amber-400">6.47 mA</span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">V mitjana (DC equivalent)</span>
+                                <span id="ac-vdc-out" class="font-bold text-emerald-400">2.06 V</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Explanatory card for AC Rectification -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-xs text-slate-300 space-y-3">
+                        <h3 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-circle-info text-brand-400"></i> Com funciona el Rectificador de Mitja Ona?
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-1">
+                                <span class="font-bold text-emerald-400 block">1. Semicicle Positiu ($V_{\text{in}} > 0$)</span>
+                                <p class="text-slate-300">L'ànode és més positiu que el càtode ($V_A > V_K$). El díode condueix. La sortida segueix l'ona d'entrada menys la caiguda llindar de 0,6 V ($V_R = V_{\text{in}} - 0,6\text{ V}$).</p>
+                            </div>
+                            <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl space-y-1">
+                                <span class="font-bold text-red-400 block">2. Semicicle Negatiu ($V_{\text{in}} < 0$)</span>
+                                <p class="text-slate-300">La polaritat s'inverteix ($V_A < V_K$). El díode queda en tall (inversa / circuit obert). No circula corrent i la tensió a la càrrega és exactament $0\text{ V}$.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- THEORETICAL SUMMARY & SELF-ASSESSMENT QUIZ -->
+        <!-- ========================================== -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-2">
+                <div>
+                    <span class="text-xs font-extrabold text-brand-400 uppercase tracking-widest">Documentació de Suport</span>
+                    <h2 class="text-xl font-bold text-white">Resum Teòric i Autoavaluació</h2>
+                </div>
+                <span class="text-xs text-slate-400 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">Mòdul 0233 — Autor: Pablo García Mangas</span>
+            </div>
+
+            <!-- Accordion / Tabs for Theory & Quiz -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Theory Summary -->
+                <div class="space-y-4 text-xs text-slate-300">
+                    <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-brand-400"></i> Conceptes Clau del Apunts IOC
+                    </h3>
+                    <ul class="space-y-2 list-disc list-inside text-slate-300 leading-relaxed">
+                        <li><strong>Unió PN:</strong> Unió de semiconductor tipus P (excés de forats/càrregues positives) i tipus N (excés d'electrons).</li>
+                        <li><strong>Polarització Directa ($V_A > V_K$):</strong> L'ànode té major potencial que el càtode. En silici cal superar la tensió llindar ($V_D \approx 0,6\text{ V} - 0,7\text{ V}$) perquè condueixi.</li>
+                        <li><strong>Polarització Inversa ($V_A < V_K$):</strong> El díode bloqueja el corrent actuant com un circuit obert ($I \approx 0$).</li>
+                        <li><strong>Rectificació de mitja ona:</strong> Converteix corrent altern (CA) en polsos de corrent continu eliminant els semicicles negatius.</li>
+                    </ul>
+                </div>
+
+                <!-- Interactive Quiz -->
+                <div class="bg-slate-950 border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <h3 class="font-bold text-sm text-slate-100 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-graduation-cap text-brand-400"></i> Test d'Autoavaluació</span>
+                        <span id="quiz-score" class="text-xs font-mono text-brand-400 font-bold">Puntuació: 0/3</span>
+                    </h3>
+
+                    <!-- Question 1 -->
+                    <div class="space-y-2 border-b border-slate-800/80 pb-3">
+                        <p class="text-xs font-semibold text-slate-200">1. Quina és la caiguda de tensió aproximada d'un díode de silici polaritzat en directa?</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="checkQuiz(1, 'a', false, this)" class="q1-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">0 V</button>
+                            <button onclick="checkQuiz(1, 'b', true, this)" class="q1-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">0,6 V - 0,7 V</button>
+                            <button onclick="checkQuiz(1, 'c', false, this)" class="q1-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">12 V</button>
+                        </div>
+                    </div>
+
+                    <!-- Question 2 -->
+                    <div class="space-y-2 border-b border-slate-800/80 pb-3">
+                        <p class="text-xs font-semibold text-slate-200">2. En un díode en polarització inversa ($V_A < V_K$), com es comporta teòricament?</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="checkQuiz(2, 'a', false, this)" class="q2-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">Com un curtcircuit (0 Ω)</button>
+                            <button onclick="checkQuiz(2, 'b', true, this)" class="q2-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">Com un circuit obert ($I \approx 0$)</button>
+                        </div>
+                    </div>
+
+                    <!-- Question 3 -->
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold text-slate-200">3. Quina és la funció d'un rectificador de mitja ona?</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="checkQuiz(3, 'a', true, this)" class="q3-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">Eliminar els semicicles negatius de la CA</button>
+                            <button onclick="checkQuiz(3, 'b', false, this)" class="q3-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-300 hover:bg-slate-800">Duplicar la freqüència de la senyal d'entrada</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 text-xs text-center text-slate-400 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="text-slate-300 font-semibold">Mòdul 0233 Electrònica — Recurso interactiu basat en el document de Pablo García Mangas (v2.0)</p>
+            <p class="flex items-center justify-center gap-2">
+                <i class="fa-creative-commons text-lg"></i>
+                Llicència <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ca" target="_blank" rel="noopener" class="text-brand-400 hover:underline font-bold">Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)</a>.
+            </p>
+        </div>
+    </footer>
+
+    <!-- LOGIC & SIMULATION ENGINE -->
+    <script>
+        // State variables
+        let currentMode = 'dc'; // 'dc' or 'ac'
+        let dcDirectOrientation = true;
+        let acAnimationId = null;
+        let acPaused = false;
+        let acTimeOffset = 0;
+        let quizScore = { q1: false, q2: false, q3: false };
+
+        // Mode Navigation
+        function setMode(mode) {
+            currentMode = mode;
+            const viewDC = document.getElementById('view-dc');
+            const viewAC = document.getElementById('view-ac');
+            const btnDC = document.getElementById('btn-mode-dc');
+            const btnAC = document.getElementById('btn-mode-ac');
+
+            if (mode === 'dc') {
+                viewDC.classList.remove('hidden');
+                viewAC.classList.add('hidden');
+                btnDC.className = "flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-brand-600 text-white shadow-sm";
+                btnAC.className = "flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2";
+                updateDC();
+            } else {
+                viewDC.classList.add('hidden');
+                viewAC.classList.remove('hidden');
+                btnAC.className = "flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-brand-600 text-white shadow-sm";
+                btnDC.className = "flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2";
+                updateAC();
+            }
+        }
+
+        // ==========================================
+        // DC LOGIC & DRAWING
+        // ==========================================
+        function setDCOrientation(isDirect) {
+            dcDirectOrientation = isDirect;
+            const btnDirect = document.getElementById('dc-orient-direct');
+            const btnInverse = document.getElementById('dc-orient-inverse');
+
+            if (isDirect) {
+                btnDirect.className = "px-3 py-2 rounded-xl text-xs font-medium border border-brand-500/50 bg-brand-500/10 text-brand-300 flex items-center justify-center gap-2";
+                btnInverse.className = "px-3 py-2 rounded-xl text-xs font-medium border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200 flex items-center justify-center gap-2";
+            } else {
+                btnInverse.className = "px-3 py-2 rounded-xl text-xs font-medium border border-brand-500/50 bg-brand-500/10 text-brand-300 flex items-center justify-center gap-2";
+                btnDirect.className = "px-3 py-2 rounded-xl text-xs font-medium border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200 flex items-center justify-center gap-2";
+            }
+            updateDC();
+        }
+
+        function updateDC() {
+            const v1 = parseFloat(document.getElementById('dc-v1-input').value);
+            const r1 = parseFloat(document.getElementById('dc-r1-input').value);
+            const vDThreshold = parseFloat(document.getElementById('dc-model-input').value);
+
+            document.getElementById('dc-v1-val').innerText = `${v1 >= 0 ? '+' : ''}${v1.toFixed(1)} V`;
+            document.getElementById('dc-r1-val').innerText = `${r1} Ω`;
+
+            // Anode / Cathode Voltages calculation
+            let vAnode = 0;
+            let vCathode = 0;
+            let isForwardPolarized = false;
+
+            if (dcDirectOrientation) {
+                // Anode connected towards source (+), Cathode towards load
+                vAnode = v1;
+                isForwardPolarized = v1 > vDThreshold;
+            } else {
+                // Reversed: Cathode towards source (+), Anode towards load
+                vCathode = v1;
+                isForwardPolarized = (-v1) > vDThreshold;
+            }
+
+            let vr = 0;
+            let iMilliAmps = 0;
+            let statusText = "";
+            let statusBadge = "";
+            let statusClass = "";
+
+            if (isForwardPolarized) {
+                const effV = Math.abs(v1) - vDThreshold;
+                vr = effV;
+                iMilliAmps = (effV / r1) * 1000;
+
+                statusBadge = "CONDUCTOR";
+                statusClass = "p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 space-y-1";
+                statusText = `Polarització Directa ($V_A > V_K$). El díode condueix i supera la tensió llindar (${vDThreshold} V).`;
+            } else {
+                vr = 0;
+                iMilliAmps = 0;
+                statusBadge = "BLOQUEJAT (TALL)";
+                statusClass = "p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 space-y-1";
+                statusText = `Polarització Inversa ($V_A < V_K$) o tensió inferior a llindar. El díode actua com circuit obert ($I \\approx 0$).`;
+            }
+
+            // Update UI elements
+            document.getElementById('dc-readout-v1').innerText = `${v1.toFixed(3)} V`;
+            document.getElementById('dc-readout-vr').innerText = `${vr.toFixed(3)} V`;
+            document.getElementById('dc-readout-i').innerText = `${iMilliAmps.toFixed(2)} mA`;
+
+            const statusCard = document.getElementById('dc-status-card');
+            statusCard.className = statusClass;
+            document.getElementById('dc-status-badge').innerText = statusBadge;
+            document.getElementById('dc-status-desc').innerText = statusText;
+
+            // Update Math Box
+            const mathBox = document.getElementById('dc-math-box');
+            if (isForwardPolarized) {
+                mathBox.innerHTML = `
+                    <div>• <strong>Tensió d'entrada ($V_1$):</strong> ${v1.toFixed(2)} V</div>
+                    <div>• <strong>Caiguda al díode ($V_D$):</strong> ${vDThreshold.toFixed(2)} V</div>
+                    <div>• <strong>Tensió a la càrrega ($V_R$):</strong> $V_1 - V_D = ${v1.toFixed(2)} - ${vDThreshold.toFixed(2)} = \\mathbf{${vr.toFixed(2)}\\text{ V}}$</div>
+                    <div>• <strong>Intensitat de corrent ($I$):</strong> $I = \\frac{V_R}{R_1} = \\frac{${vr.toFixed(2)}}{${r1}} = \\mathbf{${iMilliAmps.toFixed(2)}\\text{ mA}}$</div>
+                `;
+            } else {
+                mathBox.innerHTML = `
+                    <div>• <strong>Tensió d'entrada ($V_1$):</strong> ${v1.toFixed(2)} V</div>
+                    <div>• <strong>Estat del díode:</strong> Circuit Obert ($I = 0\\text{ A}$)</div>
+                    <div>• <strong>Tensió a la càrrega ($V_R$):</strong> $V_R = R_1 \\cdot I = ${r1} \\cdot 0 = \\mathbf{0.00\\text{ V}}$</div>
+                `;
+            }
+
+            drawDCSchematic(v1, vr, iMilliAmps, isForwardPolarized);
+        }
+
+        function drawDCSchematic(v1, vr, iMilliAmps, isConducting) {
+            const canvas = document.getElementById('dc-canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Circuit dimensions
+            const leftX = 80;
+            const rightX = 520;
+            const topY = 60;
+            const bottomY = 220;
+            const midX = (leftX + rightX) / 2;
+
+            // Draw Wires
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            // Loop wires
+            ctx.moveTo(leftX, topY);
+            ctx.lineTo(rightX, topY);
+            ctx.lineTo(rightX, bottomY);
+            ctx.lineTo(leftX, bottomY);
+            ctx.lineTo(leftX, topY);
+            ctx.stroke();
+
+            // Ground Symbol
+            ctx.beginPath();
+            ctx.moveTo(midX, bottomY);
+            ctx.lineTo(midX, bottomY + 20);
+            ctx.moveTo(midX - 15, bottomY + 20);
+            ctx.lineTo(midX + 15, bottomY + 20);
+            ctx.moveTo(midX - 10, bottomY + 25);
+            ctx.lineTo(midX + 10, bottomY + 25);
+            ctx.moveTo(midX - 5, bottomY + 30);
+            ctx.lineTo(midX + 5, bottomY + 30);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.stroke();
+
+            // Voltage Source (Left)
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(leftX, (topY + bottomY) / 2, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Source Labels
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('V1', leftX - 38, (topY + bottomY) / 2 - 5);
+            ctx.fillText(`${v1.toFixed(1)}V`, leftX - 38, (topY + bottomY) / 2 + 12);
+            ctx.fillText('+', leftX, (topY + bottomY) / 2 - 8);
+            ctx.fillText('-', leftX, (topY + bottomY) / 2 + 15);
+
+            // Diode Symbol (Top Center)
+            const diodeX = midX - 30;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(diodeX - 20, topY - 25, 80, 50);
+
+            ctx.save();
+            ctx.translate(diodeX + 20, topY);
+            if (!dcDirectOrientation) {
+                ctx.rotate(Math.PI); // Rotate 180 deg if reversed
+            }
+
+            // Triangle (Anode -> Cathode)
+            ctx.beginPath();
+            ctx.moveTo(-15, -15);
+            ctx.lineTo(15, 0);
+            ctx.lineTo(-15, 15);
+            ctx.closePath();
+            ctx.fillStyle = isConducting ? '#0284c7' : '#334155';
+            ctx.fill();
+            ctx.strokeStyle = isConducting ? '#38bdf8' : '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Vertical Line (Cathode bar)
+            ctx.beginPath();
+            ctx.moveTo(15, -15);
+            ctx.lineTo(15, 15);
+            ctx.strokeStyle = isConducting ? '#38bdf8' : '#f8fafc';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Diode Label
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.fillText('D1 (1N4004)', diodeX + 20, topY - 30);
+
+            // Load Resistor R1 (Right)
+            const resY = (topY + bottomY) / 2;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(rightX - 12, resY - 30, 24, 60);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(rightX - 12, resY - 30, 24, 60);
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('R1', rightX + 20, resY - 5);
+            ctx.fillText(`${document.getElementById('dc-r1-input').value} Ω`, rightX + 20, resY + 12);
+
+            // Current Flow Dots Animation
+            if (isConducting && Math.abs(iMilliAmps) > 0) {
+                ctx.fillStyle = '#fbbf24';
+                const now = Date.now() / 200;
+                const dotCount = 12;
+                const totalPerimeter = (rightX - leftX) * 2 + (bottomY - topY) * 2;
+
+                for (let i = 0; i < dotCount; i++) {
+                    let dist = ((now * 40) + (i * (totalPerimeter / dotCount))) % totalPerimeter;
+                    let px = 0, py = 0;
+
+                    if (dist < (rightX - leftX)) {
+                        px = leftX + dist;
+                        py = topY;
+                    } else if (dist < (rightX - leftX) + (bottomY - topY)) {
+                        px = rightX;
+                        py = topY + (dist - (rightX - leftX));
+                    } else if (dist < (rightX - leftX) * 2 + (bottomY - topY)) {
+                        px = rightX - (dist - ((rightX - leftX) + (bottomY - topY)));
+                        py = bottomY;
+                    } else {
+                        px = leftX;
+                        py = bottomY - (dist - ((rightX - leftX) * 2 + (bottomY - topY)));
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // ==========================================
+        // AC LOGIC & OSCILLOSCOPE DRAWING
+        // ==========================================
+        function updateAC() {
+            const vRms = parseFloat(document.getElementById('ac-vrms-input').value);
+            const freq = parseFloat(document.getElementById('ac-freq-input').value);
+            const vDThreshold = parseFloat(document.getElementById('ac-model-input').value);
+            const r1 = parseFloat(document.getElementById('ac-r1-input').value);
+
+            document.getElementById('ac-vrms-val').innerText = `${vRms.toFixed(1)} Vrms`;
+            document.getElementById('ac-freq-val').innerText = `${freq} Hz`;
+            document.getElementById('ac-r1-val').innerText = `${r1} Ω`;
+
+            const vPicIn = vRms * Math.SQRT2; // Vpeak = Vrms * sqrt(2)
+            const vPicOut = Math.max(0, vPicIn - vDThreshold);
+            const iPicOut = (vPicOut / r1) * 1000; // mA
+            const vDcOut = vPicOut / Math.PI; // Average Vdc for half wave = Vpeak / pi
+
+            document.getElementById('ac-vpic-in').innerText = `${vPicIn.toFixed(2)} V`;
+            document.getElementById('ac-vpic-out').innerText = `${vPicOut.toFixed(2)} V`;
+            document.getElementById('ac-ipic-out').innerText = `${iPicOut.toFixed(2)} mA`;
+            document.getElementById('ac-vdc-out').innerText = `${vDcOut.toFixed(2)} V`;
+        }
+
+        function toggleACPause() {
+            acPaused = !acPaused;
+            const btn = document.getElementById('ac-pause-btn');
+            if (acPaused) {
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> Reprendre Senyal`;
+                btn.className = "flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2";
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausar Senyal`;
+                btn.className = "flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2";
+            }
+        }
+
+        function startACOscilloscope() {
+            const canvas = document.getElementById('ac-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function renderFrame() {
+                if (currentMode === 'ac') {
+                    if (!acPaused) {
+                        acTimeOffset += 0.015;
+                    }
+
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    const vRms = parseFloat(document.getElementById('ac-vrms-input').value);
+                    const freq = parseFloat(document.getElementById('ac-freq-input').value);
+                    const vDThreshold = parseFloat(document.getElementById('ac-model-input').value);
+
+                    const vPicIn = vRms * Math.SQRT2;
+                    const vPicOut = Math.max(0, vPicIn - vDThreshold);
+
+                    // Clear & Draw Grid
+                    ctx.fillStyle = '#050b14';
+                    ctx.fillRect(0, 0, w, h);
+
+                    // Grid lines
+                    ctx.strokeStyle = '#1e293b';
+                    ctx.lineWidth = 1;
+
+                    const gridCols = 10;
+                    const gridRows = 6;
+                    for (let i = 0; i <= gridCols; i++) {
+                        let x = (w / gridCols) * i;
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, h);
+                        ctx.stroke();
+                    }
+                    for (let j = 0; j <= gridRows; j++) {
+                        let y = (h / gridRows) * j;
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(w, y);
+                        ctx.stroke();
+                    }
+
+                    // Center Axis
+                    const centerY = h / 2;
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, centerY);
+                    ctx.lineTo(w, centerY);
+                    ctx.stroke();
+
+                    // Scaling factors (5V per division = h/6 pixels)
+                    const pixelsPerVolt = (h / gridRows) / 5;
+
+                    // Plot Channel A (Input AC Sine Wave - Red)
+                    ctx.strokeStyle = '#f87171';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+
+                    for (let x = 0; x < w; x++) {
+                        let t = (x / w) * 0.04 + acTimeOffset; // 40ms span
+                        let valIn = vPicIn * Math.sin(2 * Math.PI * (freq / 10) * t);
+                        let y = centerY - (valIn * pixelsPerVolt);
+
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+
+                    // Plot Channel B (Half-Wave Rectified Output - Sky Blue)
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+
+                    for (let x = 0; x < w; x++) {
+                        let t = (x / w) * 0.04 + acTimeOffset;
+                        let valIn = vPicIn * Math.sin(2 * Math.PI * (freq / 10) * t);
+                        let valOut = 0;
+
+                        if (valIn > vDThreshold) {
+                            valOut = valIn - vDThreshold; // Positive conduction
+                        } else {
+                            valOut = 0; // Negative blocked
+                        }
+
+                        let y = centerY - (valOut * pixelsPerVolt);
+
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+
+                acAnimationId = requestAnimationFrame(renderFrame);
+            }
+
+            renderFrame();
+        }
+
+        // ==========================================
+        // INTERACTIVE QUIZ LOGIC
+        // ==========================================
+        function checkQuiz(qNum, option, isCorrect, btnElement) {
+            const btnGroup = document.querySelectorAll(`.q${qNum}-btn`);
+            btnGroup.forEach(btn => {
+                btn.disabled = true;
+                btn.className = "q1-btn p-2 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-500 cursor-not-allowed";
+            });
+
+            if (isCorrect) {
+                btnElement.className = "p-2 rounded-lg border border-emerald-500 bg-emerald-500/20 text-[11px] font-bold text-emerald-300";
+                quizScore[`q${qNum}`] = true;
+            } else {
+                btnElement.className = "p-2 rounded-lg border border-red-500 bg-red-500/20 text-[11px] font-bold text-red-300";
+            }
+
+            const totalScore = Object.values(quizScore).filter(Boolean).length;
+            document.getElementById('quiz-score').innerText = `Puntuació: ${totalScore}/3`;
+        }
+
+        // Initialize on window load
+        window.onload = function() {
+            updateDC();
+            updateAC();
+            startACOscilloscope();
+        };
+    </script>
+</body>
+</html>
