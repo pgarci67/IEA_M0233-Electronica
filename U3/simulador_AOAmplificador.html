@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de l'AO No Inversor - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-wave-square text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de l'AO com a Amplificador No Inversor</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas)</p>
+        </div>
+      </div>
+      
+      <!-- MODE SWITCHER -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+        <button id="btnModeDC" onclick="setMode('dc')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition">
+          <i class="fa-solid fa-car-battery mr-1"></i> Corrent Continu (CC)
+        </button>
+        <button id="btnModeAC" onclick="setMode('ac')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-wave-square mr-1"></i> Corrent Altern (CA)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Esquerra: Esquema de Circuit & Display (Canvas) -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Esquema de Circuit Ortogonal -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project text-sky-400"></i> Esquema del Circuit (Branques Totalment Separades)
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Curtcircuit Virtual (V+ = V-)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="circuitCanvas" width="700" height="360" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Oscil·loscopi (Mode CA) -->
+      <div id="scopeCard" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-display text-rose-400"></i> Oscil·loscopi Virtual (Canal A: Entrada / Canal B: Sortida)
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="text-amber-400 flex items-center gap-1">━ Canal A: V<sub>in</sub> (Entrada)</span>
+            <span class="text-sky-400 flex items-center gap-1">━ Canal B: V<sub>out</sub> (Sortida)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="scopeCanvas" width="700" height="200" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dreta: Controls i Càlculs -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Paràmetres del Circuit
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <!-- Resistència R1 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Resistència R1 (Massa):</label>
+              <span id="r1Val" class="text-sky-400 font-bold">1.0 kΩ</span>
+            </div>
+            <input type="range" id="r1Slider" min="1" max="10" value="1" step="0.5" oninput="updateSimulation()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Resistència R2 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Resistència R2 (Retroalimentació):</label>
+              <span id="r2Val" class="text-sky-400 font-bold">10.0 kΩ</span>
+            </div>
+            <input type="range" id="r2Slider" min="1" max="50" value="10" step="1" oninput="updateSimulation()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Font Entrada Vi (CC o CA) -->
+          <div id="dcInputGroup">
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Font de CC V<sub>in</sub> (Entrada V+):</label>
+              <span id="viDcVal" class="text-amber-400 font-bold">1.0 mV</span>
+            </div>
+            <input type="range" id="viDcSlider" min="0.1" max="10.0" value="1.0" step="0.1" oninput="updateSimulation()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <div id="acInputGroup" class="hidden space-y-3">
+            <div>
+              <div class="flex justify-between mb-1">
+                <label class="text-slate-300 font-medium">Font de CA V<sub>in,pic</sub> (Entrada V+):</label>
+                <span id="viAcVal" class="text-amber-400 font-bold">100 mV</span>
+              </div>
+              <input type="range" id="viAcSlider" min="10" max="500" value="100" step="10" oninput="updateSimulation()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+            </div>
+
+            <!-- Escalats d'Oscil·loscopi -->
+            <div class="pt-2 border-t border-slate-700 space-y-2">
+              <label class="text-slate-300 font-bold block">Escales de l'Oscil·loscopi:</label>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[10px] text-slate-400 block">Volts/Div (Ch A)</label>
+                  <select id="vdivA" onchange="updateSimulation()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                    <option value="0.05">0.05 V/Div</option>
+                    <option value="0.1" selected>0.1 V/Div</option>
+                    <option value="0.2">0.2 V/Div</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-400 block">Volts/Div (Ch B)</label>
+                  <select id="vdivB" onchange="updateSimulation()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                    <option value="0.5">0.5 V/Div</option>
+                    <option value="1" selected>1.0 V/Div</option>
+                    <option value="2">2.0 V/Div</option>
+                    <option value="5">5.0 V/Div</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel de Càlculs -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-calculator text-emerald-400"></i> Magnituds Calculades
+          </h2>
+
+          <div class="space-y-2 text-xs mb-3">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Guany Teòric (Av = 1 + R2/R1):</span>
+              <span id="calcAv" class="font-bold text-sky-400">11.00</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Tensió Inversora (V- = V+):</span>
+              <span id="calcVminus" class="font-bold text-emerald-400">1.00 mV</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Tensió de Sortida (Vout):</span>
+              <span id="calcVout" class="font-bold text-rose-400">11.00 mV</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Corrent de Retroalimentació (I1 = I2):</span>
+              <span id="calcCurrent" class="font-bold text-amber-400">1.00 µA</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200 mt-2">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-graduation-cap"></i> Recordatori Didàctic:
+          </strong>
+          En estar en <strong>retroalimentació negativa</strong>, es produeix el <strong>curtcircuit virtual</strong> (V+ = V-). L'AO no absorbeix corrent per les seves entrades, per la qual cosa tot el corrent circula per la xarxa R1-R2.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let mode = 'dc'; // 'dc' or 'ac'
+    const circuitCanvas = document.getElementById('circuitCanvas');
+    const ctxC = circuitCanvas.getContext('2d');
+    const scopeCanvas = document.getElementById('scopeCanvas');
+    const ctxS = scopeCanvas.getContext('2d');
+
+    function setMode(newMode) {
+      mode = newMode;
+      const btnDC = document.getElementById('btnModeDC');
+      const btnAC = document.getElementById('btnModeAC');
+      const dcGroup = document.getElementById('dcInputGroup');
+      const acGroup = document.getElementById('acInputGroup');
+      const scopeCard = document.getElementById('scopeCard');
+
+      if (mode === 'dc') {
+        btnDC.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition";
+        btnAC.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+        dcGroup.classList.remove('hidden');
+        acGroup.classList.add('hidden');
+        scopeCard.classList.add('hidden');
+      } else {
+        btnAC.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition";
+        btnDC.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+        acGroup.classList.remove('hidden');
+        dcGroup.classList.add('hidden');
+        scopeCard.classList.remove('hidden');
+      }
+      updateSimulation();
+    }
+
+    function updateSimulation() {
+      const r1 = parseFloat(document.getElementById('r1Slider').value); // kΩ
+      const r2 = parseFloat(document.getElementById('r2Slider').value); // kΩ
+      const av = 1 + (r2 / r1);
+
+      document.getElementById('r1Val').innerText = r1.toFixed(1) + ' kΩ';
+      document.getElementById('r2Val').innerText = r2.toFixed(1) + ' kΩ';
+      document.getElementById('calcAv').innerText = av.toFixed(2);
+
+      let vi = 0;
+      let vo = 0;
+      let i1 = 0;
+
+      if (mode === 'dc') {
+        vi = parseFloat(document.getElementById('viDcSlider').value); // mV
+        document.getElementById('viDcVal').innerText = vi.toFixed(1) + ' mV';
+
+        vo = vi * av; // mV
+        i1 = vi / r1; // µA
+
+        document.getElementById('calcVminus').innerText = vi.toFixed(2) + ' mV';
+        document.getElementById('calcVout').innerText = vo.toFixed(2) + ' mV';
+        document.getElementById('calcCurrent').innerText = i1.toFixed(2) + ' µA';
+      } else {
+        const viPeak = parseFloat(document.getElementById('viAcSlider').value); // mV
+        document.getElementById('viAcVal').innerText = viPeak.toFixed(0) + ' mV';
+
+        const voPeak = viPeak * av; // mV
+        i1 = viPeak / r1; // µA
+
+        document.getElementById('calcVminus').innerText = viPeak.toFixed(1) + ' mV (Pic)';
+        document.getElementById('calcVout').innerText = (voPeak / 1000).toFixed(3) + ' V (Pic)';
+        document.getElementById('calcCurrent').innerText = i1.toFixed(1) + ' µA (Pic)';
+
+        drawScope(viPeak / 1000, voPeak / 1000);
+      }
+
+      drawCircuit(r1, r2, vi, vo);
+    }
+
+    // Símbol de Massa (GND)
+    function drawGND(ctx, x, y) {
+      ctx.save();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 10, y); ctx.lineTo(x + 10, y);
+      ctx.moveTo(x - 6, y + 4); ctx.lineTo(x + 6, y + 4);
+      ctx.moveTo(x - 2, y + 8); ctx.lineTo(x + 2, y + 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Dibuix de Font de Corrent Continu (Dues línies horitzontals H)
+    function drawDCSource(ctx, x, y, label, volts) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Línia superior (Pol Positiu +) -> Més llarga
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-16, -8); ctx.lineTo(16, -8);
+      ctx.stroke();
+
+      // Línia inferior (Pol Negatiu -) -> Més curta i gruixuda
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-8, 8); ctx.lineTo(8, 8);
+      ctx.stroke();
+
+      // Etiqueta a l'esquerra
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(label, -60, -2);
+      ctx.font = '11px sans-serif';
+      ctx.fillText(volts.toFixed(1) + ' mV', -60, 12);
+
+      ctx.restore();
+    }
+
+    // Dibuix de Font de Corrent Altern (Rodona amb la sinusoide ~ a dins)
+    function drawACSource(ctx, x, y, label, volts) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = '#0f172a';
+
+      // Cercle de la font de CA
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Ona sinusoïdal interior (~)
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.quadraticCurveTo(-4, -8, 0, 0);
+      ctx.quadraticCurveTo(4, 8, 8, 0);
+      ctx.stroke();
+
+      // Etiquetes
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(label, -60, -2);
+      ctx.font = '11px sans-serif';
+      ctx.fillText(volts.toFixed(0) + ' mV', -60, 12);
+
+      ctx.restore();
+    }
+
+    // Dibuix de Resistència (Caixa rectangular amb etiqueta)
+    function drawResistor(ctx, x, y, isVertical, label) {
+      ctx.save();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = '#0f172a';
+
+      if (isVertical) {
+        ctx.fillRect(x - 10, y - 20, 20, 40);
+        ctx.strokeRect(x - 10, y - 20, 20, 40);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label, x + 16, y + 4);
+      } else {
+        ctx.fillRect(x - 20, y - 10, 40, 20);
+        ctx.strokeRect(x - 20, y - 10, 40, 20);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label, x - 12, y - 15);
+      }
+      ctx.restore();
+    }
+
+    function drawCircuit(r1, r2, vi, vo) {
+      const w = circuitCanvas.width;
+      const h = circuitCanvas.height;
+      ctxC.clearRect(0, 0, w, h);
+
+      // Coordenades centrals de l'AO
+      const aoX = 430;
+      const aoY = 180;
+      const aoSize = 70;
+
+      const inMinusY = aoY - aoSize/2; // y = 145 (Entrada Inversora -)
+      const inPlusY = aoY + aoSize/2;  // y = 215 (Entrada No-Inversora +)
+
+      // 1. DIBUIX DEL SÍMBOL DE L'AO (Triangle)
+      ctxC.strokeStyle = '#e2e8f0';
+      ctxC.lineWidth = 2.5;
+      ctxC.fillStyle = '#0f172a';
+
+      ctxC.beginPath();
+      ctxC.moveTo(aoX - aoSize, aoY - aoSize);
+      ctxC.lineTo(aoX - aoSize, aoY + aoSize);
+      ctxC.lineTo(aoX + aoSize, aoY);
+      ctxC.closePath();
+      ctxC.fill();
+      ctxC.stroke();
+
+      // Signes de les entrades (+ / -)
+      ctxC.fillStyle = '#e2e8f0';
+      ctxC.font = 'bold 16px sans-serif';
+      ctxC.fillText('-', aoX - aoSize + 12, inMinusY + 5);
+      ctxC.fillText('+', aoX - aoSize + 10, inPlusY + 5);
+
+      ctxC.fillStyle = '#64748b';
+      ctxC.font = '11px sans-serif';
+      ctxC.fillText('UA741', aoX - 25, aoY + 4);
+
+      // Pins d'Alimentació (+Vcc / -Vcc)
+      ctxC.strokeStyle = '#64748b';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(aoX - 20, aoY - aoSize/2 - 5); ctxC.lineTo(aoX - 20, aoY - aoSize - 15);
+      ctxC.moveTo(aoX - 20, aoY + aoSize/2 + 5); ctxC.lineTo(aoX - 20, aoY + aoSize + 15);
+      ctxC.stroke();
+
+      ctxC.fillStyle = '#38bdf8'; ctxC.font = 'bold 10px sans-serif';
+      ctxC.fillText('+Vcc', aoX - 45, aoY - aoSize - 20);
+      ctxC.fillStyle = '#f43f5e';
+      ctxC.fillText('-Vcc', aoX - 45, aoY + aoSize + 25);
+
+      // 2. ENTRADA NO-INVERSORA V+ (Font Vi entra per baix sense creuar cap línia)
+      const srcX = 220;
+      const srcY = 280; // Posicionada a baix a l'esquerra
+
+      // Conductor des de la font Vi directe cap a l'entrada V+
+      ctxC.strokeStyle = '#f59e0b';
+      ctxC.lineWidth = 2.5;
+      ctxC.beginPath();
+      ctxC.moveTo(srcX, srcY - 15);
+      ctxC.lineTo(srcX, inPlusY);
+      ctxC.lineTo(aoX - aoSize, inPlusY);
+      ctxC.stroke();
+
+      // Dibuix de la Font (CC o CA segons mode)
+      if (mode === 'dc') {
+        drawDCSource(ctxC, srcX, srcY, 'Vi (CC)', vi);
+      } else {
+        const viPeak = parseFloat(document.getElementById('viAcSlider').value);
+        drawACSource(ctxC, srcX, srcY, 'Vi (CA)', viPeak);
+      }
+
+      // Connexió a Massa (GND) de la font Vi
+      ctxC.strokeStyle = '#64748b';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(srcX, srcY + 15);
+      ctxC.lineTo(srcX, srcY + 35);
+      ctxC.stroke();
+      drawGND(ctxC, srcX, srcY + 35);
+
+      // 3. XARXA DE RETROALIMENTACIÓ NEGATIVA (Branca totalment independent)
+      const nodeX = 140; // Situat lliurement a l'esquerra del conductor de V+
+
+      // Conductor principal des de l'Entrada Inversora V- cap al Node de Retroalimentació
+      ctxC.strokeStyle = '#10b981';
+      ctxC.lineWidth = 2.5;
+      ctxC.beginPath();
+      ctxC.moveTo(aoX - aoSize, inMinusY);
+      ctxC.lineTo(nodeX, inMinusY);
+      ctxC.stroke();
+
+      // Node de retroalimentació (Punt verd)
+      ctxC.fillStyle = '#10b981';
+      ctxC.beginPath(); ctxC.arc(nodeX, inMinusY, 4, 0, Math.PI * 2); ctxC.fill();
+
+      // BRANCA DE R1: Baixa verticalment a x=140 cap a Massa en espai net
+      ctxC.strokeStyle = '#e2e8f0';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(nodeX, inMinusY);
+      ctxC.lineTo(nodeX, inMinusY + 40);
+      ctxC.stroke();
+
+      drawResistor(ctxC, nodeX, inMinusY + 60, true, 'R1 (' + r1.toFixed(1) + 'kΩ)');
+
+      ctxC.strokeStyle = '#64748b';
+      ctxC.beginPath();
+      ctxC.moveTo(nodeX, inMinusY + 80);
+      ctxC.lineTo(nodeX, inMinusY + 105);
+      ctxC.stroke();
+      drawGND(ctxC, nodeX, inMinusY + 105);
+
+      // BRANCA DE R2: S'eleva en bucle per sobre de tot fins a la sortida
+      const loopY = 45;
+      const outNodeX = 530;
+
+      ctxC.strokeStyle = '#38bdf8';
+      ctxC.lineWidth = 2.5;
+      ctxC.beginPath();
+      ctxC.moveTo(nodeX, inMinusY);
+      ctxC.lineTo(nodeX, loopY);
+      ctxC.lineTo(outNodeX, loopY);
+      ctxC.lineTo(outNodeX, aoY);
+      ctxC.stroke();
+
+      drawResistor(ctxC, (nodeX + outNodeX) / 2, loopY, false, 'R2 (' + r2.toFixed(1) + 'kΩ)');
+
+      // 4. SORTIDA DE L'AO (Vout)
+      ctxC.strokeStyle = '#f43f5e';
+      ctxC.lineWidth = 3.5;
+      ctxC.beginPath();
+      ctxC.moveTo(aoX + aoSize, aoY);
+      ctxC.lineTo(630, aoY);
+      ctxC.stroke();
+
+      // Node de sortida
+      ctxC.fillStyle = '#f43f5e';
+      ctxC.beginPath(); ctxC.arc(outNodeX, aoY, 4, 0, Math.PI * 2); ctxC.fill();
+
+      // Text indicador de Voltatge a la sortida
+      ctxC.fillStyle = '#f43f5e';
+      ctxC.font = 'bold 13px sans-serif';
+      if (mode === 'dc') {
+        ctxC.fillText('Vout = ' + vo.toFixed(2) + ' mV', 500, aoY - 12);
+      } else {
+        ctxC.fillText('Vout = ' + (vo/1000).toFixed(3) + ' V (Pic)', 490, aoY - 12);
+      }
+
+      ctxC.beginPath(); ctxC.arc(630, aoY, 5, 0, Math.PI * 2); ctxC.fill();
+    }
+
+    // Dibuix de l'Oscil·loscopi Virtual (Mode CA)
+    function drawScope(viPeakVolts, voPeakVolts) {
+      const w = scopeCanvas.width;
+      const h = scopeCanvas.height;
+      ctxS.clearRect(0, 0, w, h);
+
+      // Quadrícula Oscil·loscopi
+      ctxS.strokeStyle = '#1e293b';
+      ctxS.lineWidth = 1;
+      for (let x = 0; x < w; x += 35) { ctxS.beginPath(); ctxS.moveTo(x, 0); ctxS.lineTo(x, h); ctxS.stroke(); }
+      for (let y = 0; y < h; y += 35) { ctxS.beginPath(); ctxS.moveTo(0, y); ctxS.lineTo(w, y); ctxS.stroke(); }
+
+      const centerY = h / 2;
+      ctxS.strokeStyle = '#475569';
+      ctxS.lineWidth = 1.5;
+      ctxS.beginPath(); ctxS.moveTo(0, centerY); ctxS.lineTo(w, centerY); ctxS.stroke();
+
+      const vdivA = parseFloat(document.getElementById('vdivA').value);
+      const vdivB = parseFloat(document.getElementById('vdivB').value);
+      const dy = 25;
+
+      // Canal A: Entrada Vi (Taronja / Àmbar)
+      ctxS.strokeStyle = '#f59e0b';
+      ctxS.lineWidth = 2;
+      ctxS.beginPath();
+      for (let x = 0; x <= w; x++) {
+        const t = (x / w) * 4 * Math.PI;
+        const v = viPeakVolts * Math.sin(t);
+        const y = centerY - (v / vdivA) * dy;
+        if (x === 0) ctxS.moveTo(x, y); else ctxS.lineTo(x, y);
+      }
+      ctxS.stroke();
+
+      // Canal B: Sortida Vo (Blau)
+      ctxS.strokeStyle = '#38bdf8';
+      ctxS.lineWidth = 2.5;
+      ctxS.beginPath();
+      for (let x = 0; x <= w; x++) {
+        const t = (x / w) * 4 * Math.PI;
+        const v = voPeakVolts * Math.sin(t);
+        const y = centerY - (v / vdivB) * dy;
+        if (x === 0) ctxS.moveTo(x, y); else ctxS.lineTo(x, y);
+      }
+      ctxS.stroke();
+    }
+
+    window.onload = () => {
+      setMode('dc');
+    };
+  </script>
+</body>
+</html>
