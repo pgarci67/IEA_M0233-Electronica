@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador del Comparador amb AO - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-microchip text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de l'Amplificador Operacional com a Comparador</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="resetSimulation()" class="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition flex items-center gap-2 border border-slate-600">
+          <i class="fa-solid fa-rotate-right text-sky-400"></i> Restablir Valors
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Esquerra: Esquema de Circuit & Visualització -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Esquema de Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project text-sky-400"></i> Esquema del Circuit amb Fonts de CC Variables
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm shadow-emerald-500/50"></span> Saturació Positiva (+Vcc)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm shadow-rose-500/50"></span> Saturació Negativa (-Vcc)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="circuitCanvas" width="700" height="370" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Estat dels Voltímetres Virtuals -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-gauge-high text-amber-400"></i> Mesures als Voltímetres de Laboratori
+        </h2>
+        <div class="grid grid-cols-3 gap-3 text-center font-mono">
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-700">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Entrada No Inversora (V+)</span>
+            <span id="readoutVplus" class="text-lg font-bold text-sky-400">1.500 V</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-700">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Entrada Inversora (V-)</span>
+            <span id="readoutVminus" class="text-lg font-bold text-amber-400">7.500 V</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-700">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Tensió de Sortida (Vs)</span>
+            <span id="readoutVs" class="text-lg font-bold text-rose-400">-14.118 V</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dreta: Controls i Càlculs -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Regulació de les Fonts de CC
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <!-- Font de CC V1 (V+) -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Font de CC V1 (Entrada V+):</label>
+              <span id="v1Val" class="text-sky-400 font-bold">1.50 V</span>
+            </div>
+            <input type="range" id="v1Slider" min="0" max="15" value="1.5" step="0.1" oninput="updateParams()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Font de CC V2 (V-) -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Font de CC V2 (Entrada V-):</label>
+              <span id="v2Val" class="text-amber-400 font-bold">7.50 V</span>
+            </div>
+            <input type="range" id="v2Slider" min="0" max="15" value="7.5" step="0.1" oninput="updateParams()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Selecció de Model Teòric -->
+          <div class="pt-2 border-t border-slate-700">
+            <label class="text-slate-300 font-medium block mb-1">Model Teòric de l'AO:</label>
+            <select id="modelSelect" onchange="updateParams()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+              <option value="real" selected>Model Real (UA741: Sat ≈ ±14.118 V)</option>
+              <option value="ideal">Model Ideal (Sat = ±15.000 V)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Càlculs i Anàlisi -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-calculator text-emerald-400"></i> Anàlisi Teòric en Temps Real
+          </h2>
+
+          <div class="space-y-2 text-xs mb-3">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Diferencial (Vd = V+ - V-):</span>
+              <span id="calcVd" class="font-bold text-rose-400">-6.000 V</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Condició d'entrada:</span>
+              <span id="calcCond" class="font-bold text-rose-400">V+ &lt; V-</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+              <span class="text-slate-400">Estat de la Sortida:</span>
+              <span id="calcState" class="font-bold text-rose-400">SATURACIÓ NEGATIVA</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200 mt-2">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-graduation-cap"></i> Regla del Comparador:
+          </strong>
+          Si <strong>V+ &gt; V-</strong>, la sortida s'eleva a la saturació positiva (+Vcc).<br>
+          Si <strong>V+ &lt; V-</strong>, la sortida baixa a la saturació negativa (-Vcc).
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function updateParams() {
+      const vPlus = parseFloat(document.getElementById('v1Slider').value);
+      const vMinus = parseFloat(document.getElementById('v2Slider').value);
+      const isReal = document.getElementById('modelSelect').value === 'real';
+
+      const vDiff = vPlus - vMinus;
+
+      let vOut = 0;
+      const satMax = isReal ? 14.118 : 15.0;
+
+      if (vDiff > 0) {
+        vOut = satMax;
+      } else if (vDiff < 0) {
+        vOut = -satMax;
+      } else {
+        vOut = 0;
+      }
+
+      // Actualitzar etiquetes de control
+      document.getElementById('v1Val').innerText = vPlus.toFixed(2) + ' V';
+      document.getElementById('v2Val').innerText = vMinus.toFixed(2) + ' V';
+
+      // Actualitzar mesures dels voltímetres
+      document.getElementById('readoutVplus').innerText = vPlus.toFixed(3) + ' V';
+      document.getElementById('readoutVminus').innerText = vMinus.toFixed(3) + ' V';
+      document.getElementById('readoutVs').innerText = (vOut >= 0 ? '+' : '') + vOut.toFixed(3) + ' V';
+
+      // Colors segons estat
+      const colorOut = vOut > 0 ? '#10b981' : (vOut < 0 ? '#f43f5e' : '#94a3b8');
+      document.getElementById('readoutVs').style.color = colorOut;
+
+      // Actualitzar càlculs
+      document.getElementById('calcVd').innerText = (vDiff >= 0 ? '+' : '') + vDiff.toFixed(3) + ' V';
+      document.getElementById('calcVd').style.color = colorOut;
+
+      document.getElementById('calcCond').innerText = vPlus > vMinus ? 'V+ > V-' : (vPlus < vMinus ? 'V+ < V-' : 'V+ = V-');
+      document.getElementById('calcCond').style.color = colorOut;
+
+      document.getElementById('calcState').innerText = vOut > 0 ? 'SATURACIÓ POSITIVA (+Vcc)' : (vOut < 0 ? 'SATURACIÓ NEGATIVA (-Vcc)' : 'ZONA LINEAL (0V)');
+      document.getElementById('calcState').style.color = colorOut;
+
+      drawCircuit(vPlus, vMinus, vOut);
+    }
+
+    function resetSimulation() {
+      document.getElementById('v1Slider').value = 1.5;
+      document.getElementById('v2Slider').value = 7.5;
+      document.getElementById('modelSelect').value = 'real';
+      updateParams();
+    }
+
+    // Dibuix d'una font de Corrent Continu amb notació estàndard
+    function drawDCSource(ctx, x, y, label, volts, color) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Línia horitzontal superior (Pol Positiu +) -> Més llarga
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-18, -10);
+      ctx.lineTo(18, -10);
+      ctx.stroke();
+
+      // Línia horitzontal inferior (Pol Negatiu -) -> Més curta i gruixuda
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-9, 10);
+      ctx.lineTo(9, 10);
+      ctx.stroke();
+
+      // Signes de polaritat + i - a la dreta del símbol
+      ctx.fillStyle = color;
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('+', 24, -6);
+      ctx.fillText('-', 24, 14);
+
+      // Etiquetes de nom de la font i valor a l'esquerra
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(label, -60, -4);
+      ctx.font = '11px sans-serif';
+      ctx.fillText(volts.toFixed(1) + 'V', -60, 11);
+
+      ctx.restore();
+    }
+
+    // Símbol de massa (GND)
+    function drawGND(ctx, x, y) {
+      ctx.save();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y);
+      ctx.moveTo(x - 8, y + 4); ctx.lineTo(x + 8, y + 4);
+      ctx.moveTo(x - 4, y + 8); ctx.lineTo(x + 4, y + 8);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawCircuit(vPlus, vMinus, vOut) {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Coordenades centrals de l'AO
+      const aoX = 430;
+      const aoY = 190;
+      const aoSize = 70;
+
+      // 1. Dibuix del Símbol de l'AO (Triangle)
+      const isPosSat = vOut > 0;
+      const aoColor = isPosSat ? '#10b981' : '#f43f5e';
+
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2.5;
+      ctx.fillStyle = '#0f172a';
+
+      ctx.beginPath();
+      ctx.moveTo(aoX - aoSize, aoY - aoSize);
+      ctx.lineTo(aoX - aoSize, aoY + aoSize);
+      ctx.lineTo(aoX + aoSize, aoY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Signes + i - de les entrades
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('+', aoX - aoSize + 10, aoY - aoSize/2 + 5);
+      ctx.fillText('-', aoX - aoSize + 12, aoY + aoSize/2 + 5);
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('UA741', aoX - 25, aoY + 4);
+
+      // 2. Terminals d'Alimentació (+Vcc i -Vcc)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+
+      // +Vcc (Pin 7)
+      ctx.beginPath();
+      ctx.moveTo(aoX - 20, aoY - aoSize/2 - 5);
+      ctx.lineTo(aoX - 20, aoY - aoSize - 20);
+      ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('+Vcc (+15V)', aoX - 50, aoY - aoSize - 25);
+
+      // -Vcc (Pin 4)
+      ctx.beginPath();
+      ctx.moveTo(aoX - 20, aoY + aoSize/2 + 5);
+      ctx.lineTo(aoX - 20, aoY + aoSize + 20);
+      ctx.stroke();
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('-Vcc (-15V)', aoX - 50, aoY + aoSize + 30);
+
+      // 3. FONTS DE CC VARIABLES I LES SEVES CONNEXIONS
+      const inPlusY = aoY - aoSize/2;   // y = 155
+      const inMinusY = aoY + aoSize/2;  // y = 225
+
+      const src1X = 200;
+      const src1Y = 85;   // Pol positiu a y=75, pol negatiu a y=95
+      const src2X = 200;
+      const src2Y = 295;  // Pol positiu a y=285, pol negatiu a y=305
+
+      // Font V1 (Connectada a V+)
+      drawDCSource(ctx, src1X, src1Y, 'V1', vPlus, '#38bdf8');
+
+      // Connexió Positiu V1 -> Entrada V+ (Línia superior ben separada)
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(src1X, src1Y - 10); // Comença al pol positiu (y=75)
+      ctx.lineTo(src1X, 45);         // Puja per sobre de la font
+      ctx.lineTo(310, 45);           // Va horitzontalment cap a la dreta
+      ctx.lineTo(310, inPlusY);      // Baixa fins a l'alçada de l'entrada V+
+      ctx.lineTo(aoX - aoSize, inPlusY); // Connecta directament a V+
+      ctx.stroke();
+
+      // Connexió Negatiu V1 -> Massa (GND)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(src1X, src1Y + 10);
+      ctx.lineTo(src1X, src1Y + 30);
+      ctx.stroke();
+      drawGND(ctx, src1X, src1Y + 30);
+
+      // Font V2 (Connectada a V-)
+      drawDCSource(ctx, src2X, src2Y, 'V2', vMinus, '#f59e0b');
+
+      // Connexió Positiu V2 -> Entrada V-
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(src2X, src2Y - 10); // Pol positiu (y=285)
+      ctx.lineTo(src2X, inMinusY);   // Puja fins a l'alçada de V-
+      ctx.lineTo(aoX - aoSize, inMinusY); // Connecta a V-
+      ctx.stroke();
+
+      // Connexió Negatiu V2 -> Massa (GND)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(src2X, src2Y + 10);
+      ctx.lineTo(src2X, src2Y + 30);
+      ctx.stroke();
+      drawGND(ctx, src2X, src2Y + 30);
+
+      // 4. Línia de Sortida (Vs)
+      ctx.strokeStyle = aoColor;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(aoX + aoSize, aoY);
+      ctx.lineTo(620, aoY);
+      ctx.stroke();
+
+      // Indicador de Voltatge de Sortida al Canvas
+      ctx.fillStyle = aoColor;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('Vs = ' + (vOut >= 0 ? '+' : '') + vOut.toFixed(3) + ' V', 500, aoY - 12);
+
+      // Node de connexió a la sortida
+      ctx.beginPath();
+      ctx.arc(620, aoY, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    window.onload = () => {
+      updateParams();
+    };
+  </script>
+</body>
+</html>
