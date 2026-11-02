@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Funció de Transferència amb AOs - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-calculator text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de la Funció de Transferència amb AOs</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas)</p>
+        </div>
+      </div>
+      
+      <!-- MODE SWITCHER -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+        <button id="btnModeInv" onclick="setTopology('inv')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition">
+          <i class="fa-solid fa-arrow-right-arrow-left mr-1"></i> Circuit Inversor
+        </button>
+        <button id="btnModeNonInv" onclick="setTopology('noninv')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-arrow-right-long mr-1"></i> Circuit No Inversor
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Esquerra: Esquema de Circuit & Demostració Matemàtica -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Esquema de Circuit Ortogonal -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project text-sky-400"></i> Esquema del Circuit (Lleis de Kirchhoff i Ohm)
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Curtcircuit Virtual (V+ = V-)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> I1 = I2 (Ib = 0A)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="circuitCanvas" width="700" height="350" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Demostració Matemàtica Pas a Pas -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-square-root-variable text-emerald-400"></i> Demostració Matemàtica Pas a Pas
+        </h2>
+        <div id="mathSteps" class="font-mono text-xs space-y-2 text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800 leading-relaxed">
+          <!-- Es genera dinàmicament en JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dreta: Controls, Càlculs i Qüestionari -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Paràmetres del Circuit
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <!-- Font Entrada Vi -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Tensió d'Entrada (V<sub>in</sub> / V<sub>3</sub>):</label>
+              <span id="viVal" class="text-amber-400 font-bold">10.0 mV</span>
+            </div>
+            <input type="range" id="viSlider" min="1" max="50" value="10" step="1" oninput="updateSimulation()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Resistència R1 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Resistència d'Entrada (R<sub>1</sub>):</label>
+              <span id="r1Val" class="text-sky-400 font-bold">1.0 kΩ</span>
+            </div>
+            <input type="range" id="r1Slider" min="1" max="10" value="1" step="0.5" oninput="updateSimulation()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Resistència R2 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Resistència Retroalimentació (R<sub>2</sub>):</label>
+              <span id="r2Val" class="text-sky-400 font-bold">100.0 kΩ</span>
+            </div>
+            <input type="range" id="r2Slider" min="10" max="200" value="100" step="10" oninput="updateSimulation()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Magnituds Calculades -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl space-y-2 text-xs">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-gauge text-emerald-400"></i> Magnituds Calculades
+        </h2>
+
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+          <span class="text-slate-400">Guany Teòric (A<sub>v</sub>):</span>
+          <span id="calcAv" class="font-bold text-sky-400">-100.00</span>
+        </div>
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+          <span class="text-slate-400">Corrent de Retroalimentació (I<sub>1</sub> = I<sub>2</sub>):</span>
+          <span id="calcCurrent" class="font-bold text-amber-400">10.00 µA</span>
+        </div>
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center">
+          <span class="text-slate-400">Tensió de Sortida (V<sub>out</sub>):</span>
+          <span id="calcVout" class="font-bold text-rose-400">-1.000 V</span>
+        </div>
+      </div>
+
+      <!-- Test d'Autoavaluació -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-graduation-cap text-sky-400"></i> Autoavaluació Didàctica
+          </h2>
+          <span id="quizScore" class="text-xs font-mono font-bold text-sky-400">Puntuació: 0/3</span>
+        </div>
+
+        <!-- Pregunta 1 -->
+        <div class="space-y-1.5 text-xs">
+          <p class="font-medium text-slate-300">1. Quin és el motiu pel qual I<sub>1</sub> és igual a I<sub>2</sub> al node inversor?</p>
+          <div class="grid grid-cols-1 gap-1">
+            <button onclick="checkQuiz(1, 'a', false, this)" class="q1-btn p-2 text-left rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">a) Perquè la tensió V_ és zero volts.</button>
+            <button onclick="checkQuiz(1, 'b', true, this)" class="q1-btn p-2 text-left rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">b) Perquè la impedància d'entrada és infinita (Ib = 0A).</button>
+          </div>
+        </div>
+
+        <!-- Pregunta 2 -->
+        <div class="space-y-1.5 text-xs pt-2 border-t border-slate-700/60">
+          <p class="font-medium text-slate-300">2. Si en un circuit inversor R1 = 2 kΩ i R2 = 20 kΩ, quin serà el seu guany de tensió?</p>
+          <div class="grid grid-cols-3 gap-1.5 text-center">
+            <button onclick="checkQuiz(2, 'a', false, this)" class="q2-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">+10</button>
+            <button onclick="checkQuiz(2, 'b', true, this)" class="q2-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">-10</button>
+            <button onclick="checkQuiz(2, 'c', false, this)" class="q2-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">+11</button>
+          </div>
+        </div>
+
+        <!-- Pregunta 3 -->
+        <div class="space-y-1.5 text-xs pt-2 border-t border-slate-700/60">
+          <p class="font-medium text-slate-300">3. Quin valor té el guany d'un circuit no inversor si R2 = 0 Ω (curtcircuit)?</p>
+          <div class="grid grid-cols-3 gap-1.5 text-center">
+            <button onclick="checkQuiz(3, 'a', false, this)" class="q3-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">0</button>
+            <button onclick="checkQuiz(3, 'b', true, this)" class="q3-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">1 (Seguidor)</button>
+            <button onclick="checkQuiz(3, 'c', false, this)" class="q3-btn p-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition">Infinit</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let topology = 'inv'; // 'inv' or 'noninv'
+    let quizScore = { q1: false, q2: false, q3: false };
+
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function setTopology(newTop) {
+      topology = newTop;
+      const btnInv = document.getElementById('btnModeInv');
+      const btnNonInv = document.getElementById('btnModeNonInv');
+
+      if (topology === 'inv') {
+        btnInv.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition";
+        btnNonInv.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+      } else {
+        btnNonInv.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 text-white shadow transition";
+        btnInv.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+      }
+      updateSimulation();
+    }
+
+    function updateSimulation() {
+      const vi = parseFloat(document.getElementById('viSlider').value); // mV
+      const r1 = parseFloat(document.getElementById('r1Slider').value); // kΩ
+      const r2 = parseFloat(document.getElementById('r2Slider').value); // kΩ
+
+      document.getElementById('viVal').innerText = vi.toFixed(1) + ' mV';
+      document.getElementById('r1Val').innerText = r1.toFixed(1) + ' kΩ';
+      document.getElementById('r2Val').innerText = r2.toFixed(1) + ' kΩ';
+
+      let av = 0;
+      let vo = 0;
+      let i1 = 0;
+
+      if (topology === 'inv') {
+        av = -(r2 / r1);
+        vo = vi * av; // mV
+        i1 = vi / r1; // µA
+      } else {
+        av = 1 + (r2 / r1);
+        vo = vi * av; // mV
+        i1 = vi / r1; // µA
+      }
+
+      document.getElementById('calcAv').innerText = av.toFixed(2);
+      document.getElementById('calcCurrent').innerText = Math.abs(i1).toFixed(2) + ' µA';
+      document.getElementById('calcVout').innerText = (vo / 1000).toFixed(3) + ' V (' + vo.toFixed(1) + ' mV)';
+
+      updateMathSteps(vi, r1, r2, av, vo);
+      drawCircuit(vi, r1, r2, vo);
+    }
+
+    function updateMathSteps(vi, r1, r2, av, vo) {
+      const box = document.getElementById('mathSteps');
+      if (topology === 'inv') {
+        box.innerHTML = `
+          <div><strong class="text-sky-400">1. Curtcircuit Virtual:</strong> V+ = 0V &rarr; V- = V+ = <strong>0,00 V</strong> (Massa Virtual)</div>
+          <div><strong class="text-sky-400">2. Corrent d'Entrada (I1):</strong> I1 = (Vin - V-) / R1 = (${vi.toFixed(1)}mV - 0V) / ${r1.toFixed(1)}kΩ = <strong>${(vi/r1).toFixed(2)} µA</strong></div>
+          <div><strong class="text-sky-400">3. Corrent Retroalimentació (I2):</strong> Com Ib- = 0A &rarr; I2 = I1 = <strong>${(vi/r1).toFixed(2)} µA</strong></div>
+          <div><strong class="text-sky-400">4. Voltatge de Sortida (Vout):</strong> I2 = (V- - Vout) / R2 &rarr; ${(vi/r1).toFixed(2)}µA = (0 - Vout) / ${r2.toFixed(1)}kΩ</div>
+          <div class="text-emerald-400 font-bold pt-1">&rarr; Vout = - (R2 / R1) &middot; Vin = - (${r2.toFixed(1)} / ${r1.toFixed(1)}) &middot; ${vi.toFixed(1)}mV = ${vo.toFixed(1)} mV (${(vo/1000).toFixed(3)} V)</div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div><strong class="text-sky-400">1. Curtcircuit Virtual:</strong> V+ = Vin = ${vi.toFixed(1)}mV &rarr; V- = V+ = <strong>${vi.toFixed(1)} mV</strong></div>
+          <div><strong class="text-sky-400">2. Corrent per R1 (I1):</strong> I1 = (0V - V-) / R1 = (0 - ${vi.toFixed(1)}mV) / ${r1.toFixed(1)}kΩ = <strong>-${(vi/r1).toFixed(2)} µA</strong></div>
+          <div><strong class="text-sky-400">3. Corrent per R2 (I2):</strong> Com Ib- = 0A &rarr; I2 = I1 = <strong>-${(vi/r1).toFixed(2)} µA</strong></div>
+          <div><strong class="text-sky-400">4. Voltatge de Sortida (Vout):</strong> I2 = (V- - Vout) / R2 &rarr; -${(vi/r1).toFixed(2)}µA = (${vi.toFixed(1)}mV - Vout) / ${r2.toFixed(1)}kΩ</div>
+          <div class="text-emerald-400 font-bold pt-1">&rarr; Vout = Vin &middot; (1 + R2 / R1) = ${vi.toFixed(1)}mV &middot; (1 + ${r2.toFixed(1)}/${r1.toFixed(1)}) = ${vo.toFixed(1)} mV (${(vo/1000).toFixed(3)} V)</div>
+        `;
+      }
+    }
+
+    // Símbol de Massa (GND)
+    function drawGND(ctx, x, y) {
+      ctx.save();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 10, y); ctx.lineTo(x + 10, y);
+      ctx.moveTo(x - 6, y + 4); ctx.lineTo(x + 6, y + 4);
+      ctx.moveTo(x - 2, y + 8); ctx.lineTo(x + 2, y + 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Símbol de Font CC
+    function drawDCSource(ctx, x, y, label, volts) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(16, -8); ctx.stroke();
+
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(-8, 8); ctx.lineTo(8, 8); ctx.stroke();
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(label, -60, -2);
+      ctx.font = '11px sans-serif';
+      ctx.fillText(volts.toFixed(1) + ' mV', -60, 12);
+
+      ctx.restore();
+    }
+
+    // Símbol de Resistència (Caixa rectangular)
+    function drawResistor(ctx, x, y, isVertical, label) {
+      ctx.save();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = '#0f172a';
+
+      if (isVertical) {
+        ctx.fillRect(x - 10, y - 20, 20, 40);
+        ctx.strokeRect(x - 10, y - 20, 20, 40);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label, x + 16, y + 4);
+      } else {
+        ctx.fillRect(x - 20, y - 10, 40, 20);
+        ctx.strokeRect(x - 20, y - 10, 40, 20);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label, x - 12, y - 15);
+      }
+      ctx.restore();
+    }
+
+    function drawCircuit(vi, r1, r2, vo) {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const aoX = 420;
+      const aoY = 180;
+      const aoSize = 70;
+
+      const inMinusY = aoY - aoSize/2; // y = 145 (Entrada Inversora -)
+      const inPlusY = aoY + aoSize/2;  // y = 215 (Entrada No-Inversora +)
+
+      // 1. DIBUIX DE L'AO (Triangle)
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2.5;
+      ctx.fillStyle = '#0f172a';
+
+      ctx.beginPath();
+      ctx.moveTo(aoX - aoSize, aoY - aoSize);
+      ctx.lineTo(aoX - aoSize, aoY + aoSize);
+      ctx.lineTo(aoX + aoSize, aoY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Signes - i +
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('-', aoX - aoSize + 12, inMinusY + 5);
+      ctx.fillText('+', aoX - aoSize + 10, inPlusY + 5);
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('UA741', aoX - 25, aoY + 4);
+
+      // Pins d'Alimentació
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(aoX - 20, aoY - aoSize/2 - 5); ctx.lineTo(aoX - 20, aoY - aoSize - 15);
+      ctx.moveTo(aoX - 20, aoY + aoSize/2 + 5); ctx.lineTo(aoX - 20, aoY + aoSize + 15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('+Vcc', aoX - 45, aoY - aoSize - 20);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillText('-Vcc', aoX - 45, aoY + aoSize + 25);
+
+      // 2. CONFIGURACIÓ SEGONS TOPOLOGIA
+      if (topology === 'inv') {
+        // --- CIRCUIT INVERSOR ---
+        // Terminal V+ connectada directament a Massa
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(aoX - aoSize, inPlusY);
+        ctx.lineTo(aoX - aoSize - 40, inPlusY);
+        ctx.stroke();
+        drawGND(ctx, aoX - aoSize - 40, inPlusY);
+
+        // Terminal V- connectada a R1 i Font Vi
+        const nodeX = 260;
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(aoX - aoSize, inMinusY);
+        ctx.lineTo(nodeX, inMinusY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath(); ctx.arc(nodeX, inMinusY, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Resistor R1 Horitzontal des de la font fins al node
+        const srcX = 100;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(srcX, inMinusY);
+        ctx.lineTo(nodeX, inMinusY);
+        ctx.stroke();
+
+        drawResistor(ctx, (srcX + nodeX) / 2, inMinusY, false, 'R1 (' + r1.toFixed(1) + 'kΩ)');
+
+        // Font Vi a l'esquerra de R1
+        drawDCSource(ctx, srcX, inMinusY + 40, 'Vi (V3)', vi);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(srcX, inMinusY + 25); ctx.lineTo(srcX, inMinusY);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(srcX, inMinusY + 55); ctx.lineTo(srcX, inMinusY + 75);
+        ctx.stroke();
+        drawGND(ctx, srcX, inMinusY + 75);
+
+        // Resistor R2 en bucle superior (retroalimentació)
+        const loopY = 45;
+        const outNodeX = 530;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(nodeX, inMinusY);
+        ctx.lineTo(nodeX, loopY);
+        ctx.lineTo(outNodeX, loopY);
+        ctx.lineTo(outNodeX, aoY);
+        ctx.stroke();
+
+        drawResistor(ctx, (nodeX + outNodeX) / 2, loopY, false, 'R2 (' + r2.toFixed(1) + 'kΩ)');
+
+      } else {
+        // --- CIRCUIT NO INVERSOR ---
+        // Terminal V+ connectada a la Font Vi
+        const srcX = 220;
+        const srcY = 280;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(srcX, srcY - 15);
+        ctx.lineTo(srcX, inPlusY);
+        ctx.lineTo(aoX - aoSize, inPlusY);
+        ctx.stroke();
+
+        drawDCSource(ctx, srcX, srcY, 'Vi (V3)', vi);
+
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(srcX, srcY + 15); ctx.lineTo(srcX, srcY + 35);
+        ctx.stroke();
+        drawGND(ctx, srcX, srcY + 35);
+
+        // Terminal V- connectada al node de la xarxa R1-R2
+        const nodeX = 140;
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(aoX - aoSize, inMinusY);
+        ctx.lineTo(nodeX, inMinusY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath(); ctx.arc(nodeX, inMinusY, 4, 0, Math.PI * 2); ctx.fill();
+
+        // R1 vertical a massa
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(nodeX, inMinusY); ctx.lineTo(nodeX, inMinusY + 40);
+        ctx.stroke();
+
+        drawResistor(ctx, nodeX, inMinusY + 60, true, 'R1 (' + r1.toFixed(1) + 'kΩ)');
+
+        ctx.strokeStyle = '#64748b';
+        ctx.beginPath();
+        ctx.moveTo(nodeX, inMinusY + 80); ctx.lineTo(nodeX, inMinusY + 105);
+        ctx.stroke();
+        drawGND(ctx, nodeX, inMinusY + 105);
+
+        // R2 en bucle superior cap a la sortida
+        const loopY = 45;
+        const outNodeX = 530;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(nodeX, inMinusY);
+        ctx.lineTo(nodeX, loopY);
+        ctx.lineTo(outNodeX, loopY);
+        ctx.lineTo(outNodeX, aoY);
+        ctx.stroke();
+
+        drawResistor(ctx, (nodeX + outNodeX) / 2, loopY, false, 'R2 (' + r2.toFixed(1) + 'kΩ)');
+      }
+
+      // 3. SORTIDA DE L'AO (Vout)
+      const outNodeX = 530;
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(aoX + aoSize, aoY);
+      ctx.lineTo(630, aoY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath(); ctx.arc(outNodeX, aoY, 4, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Vout = ' + (vo/1000).toFixed(3) + ' V (' + vo.toFixed(1) + ' mV)', 470, aoY - 12);
+
+      ctx.beginPath(); ctx.arc(630, aoY, 5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Comprovació de respostes del Quiz
+    function checkQuiz(qNum, option, isCorrect, btnElement) {
+      const buttons = document.querySelectorAll(`.q${qNum}-btn`);
+      buttons.forEach(b => {
+        b.className = `q${qNum}-btn p-2 text-left rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-700 text-slate-300 transition text-xs`;
+      });
+
+      if (isCorrect) {
+        btnElement.className = `q${qNum}-btn p-2 text-left rounded-lg border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 font-bold transition text-xs`;
+        quizScore['q' + qNum] = true;
+      } else {
+        btnElement.className = `q${qNum}-btn p-2 text-left rounded-lg border border-rose-500/50 bg-rose-500/20 text-rose-300 font-bold transition text-xs`;
+        quizScore['q' + qNum] = false;
+      }
+
+      const total = Object.values(quizScore).filter(Boolean).length;
+      document.getElementById('quizScore').innerText = `Puntuació: ${total}/3`;
+    }
+
+    window.onload = () => {
+      updateSimulation();
+    };
+  </script>
+</body>
+</html>
