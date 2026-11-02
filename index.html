@@ -21,10 +21,68 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
 
-    /* Header */
-    header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 3rem 1.5rem 2.5rem; text-align: center; }
-    header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 0.5rem; }
-    header p { opacity: 0.9; font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+    /* Nova Capçalera Millorada */
+    header { 
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%); 
+      color: white; 
+      padding: 3.5rem 1.5rem 3rem; 
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Malla tecnològica de fons */
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .header-container {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      color: #93c5fd;
+    }
+
+    header h1 { 
+      font-size: 2.5rem; 
+      font-weight: 800; 
+      letter-spacing: -0.03em; 
+      margin-bottom: 0.75rem; 
+      line-height: 1.15;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    header p { 
+      opacity: 0.92; 
+      font-size: 1.1rem; 
+      max-width: 620px; 
+      margin: 0 auto;
+      font-weight: 400;
+      color: #e0f2fe;
+    }
 
     /* Navegació */
     nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: center; gap: 0.5rem; padding: 0.75rem 1rem; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); flex-wrap: wrap; }
@@ -48,10 +106,14 @@
 
     h3 { font-size: 1.05rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
 
-    /* Grid de Recursos */
-    .resource-grid { display: grid; gap: 1rem; }
+    /* Agrupació Temàtica */
+    .topic-group { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; margin-bottom: 1.25rem; }
+    .topic-title { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
     
-    .resource-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: #fff; border: 1px solid var(--border); border-radius: 10px; transition: all 0.2s ease; text-decoration: none; color: inherit; }
+    /* Grid de Recursos dins de cada tema */
+    .resource-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem; }
+    
+    .resource-item { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.1rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s ease; text-decoration: none; color: inherit; }
     .resource-item:hover { border-color: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
     
     .resource-info { display: flex; align-items: center; gap: 0.8rem; }
@@ -59,8 +121,8 @@
     .badge-pdf { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     .badge-sim { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
 
-    .resource-title { font-weight: 600; font-size: 1rem; color: var(--text); }
-    .resource-arrow { color: var(--text-muted); font-size: 1.2rem; transition: transform 0.2s ease; }
+    .resource-title { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+    .resource-arrow { color: var(--text-muted); font-size: 1.1rem; transition: transform 0.2s ease; }
     .resource-item:hover .resource-arrow { transform: translateX(4px); color: var(--primary); }
 
     /* Empty state */
@@ -75,8 +137,11 @@
 <body>
 
   <header>
-    <h1>Mòdul 0233: Electrònica</h1>
-    <p>Repositori de Documentació Complementària i Simuladors Online</p>
+    <div class="header-container">
+      <div class="header-badge">⚡ Mòdul Formatiu 0233</div>
+      <h1>Electrònica</h1>
+      <p>Repositori de Documentació Complementària i Simuladors Online</p>
+    </div>
   </header>
 
   <nav>
@@ -94,21 +159,7 @@
         <p class="unit-desc">Portes lògiques, àlgebra de Boole, simplificació per Karnaugh, circuits combinacionals i seqüencials bàsics.</p>
         
         <h3>Recursos i Material</h3>
-        <div class="resource-grid">
-          
-          <!-- AFAGEIX ELS TEUS RECURSOS DE LA U1 AQUÍ: -->
-          <!-- Exemple PDF: -->
-          <!-- <a href="U1_Apunts_Portes_Logiques.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">Guia de Portes Lògiques i Taules de Veritat</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a> -->
-
-          <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
-
-        </div>
+        <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
       </div>
     </section>
 
@@ -118,156 +169,156 @@
         <h2>🔌 Unitat 2. Components bàsics i fonts d'alimentació</h2>
         <p class="unit-desc">Components passius, díodes, transistors BJT/MOSFET i disseny de fonts d'alimentació línials.</p>
         
-        <h3>Recursos i Material</h3>
-        <div class="resource-grid">
-          <!-- Corrent Altern: -->
-          <a href="U2/U2_CorrentAltern_v2.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Corrent Altern</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
+        <h3>Recursos i Material per Temes</h3>
 
-          <a href="U2/simulador_CA" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador de Corrent Altern</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-        </div>
-        
-                <div class="resource-grid">
-          <!-- Llei d?ohm: -->
-          <a href="U2/U2_LleiOhm_v2.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">La llei d'Ohm</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-          <a href="U2/simulador_LleiOhm.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador llei d'Ohm</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
+        <!-- Tema 1: Corrent Altern -->
+        <div class="topic-group">
+          <div class="topic-title">📌 Corrent Altern</div>
+          <div class="resource-grid">
+            <a href="U2/U2_CorrentAltern_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">El Corrent Altern</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_CA.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador de Corrent Altern</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
         </div>
 
-
-
-
-        <div class="resource-grid">
-
-          <!-- El Diode: -->
-          <a href="U2/IOC_U2_ElDiode_v2.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Díode Semiconductor</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-          <a href="U2/simulador_diode_semiconductor.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador de Díode</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
+        <!-- Tema 2: Llei d'Ohm -->
+        <div class="topic-group">
+          <div class="topic-title">📌 Llei d'Ohm</div>
+          <div class="resource-grid">
+            <a href="U2/U2_LleiOhm_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">La llei d'Ohm</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_LleiOhm.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador Llei d'Ohm</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
         </div>
-        
-              <div class="resource-grid">
-          <!-- Pont Rectificador: -->
-          <a href="U2/U2_PontRectficador_v2.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
 
-          <a href="U2/simulador_del_pont_rectificador.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador del díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
+        <!-- Tema 3: El Díode Semiconductor -->
+        <div class="topic-group">
+          <div class="topic-title">📌 El Díode Semiconductor</div>
+          <div class="resource-grid">
+            <a href="U2/IOC_U2_ElDiode_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">El Díode Semiconductor</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_diode_semiconductor.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador de Díode</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
         </div>
+
+        <!-- Tema 4: Pont Rectificador -->
+        <div class="topic-group">
+          <div class="topic-title">📌 Pont Rectificador</div>
+          <div class="resource-grid">
+            <a href="U2/U2_PontRectficador_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">El Pont Rectificador</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_del_pont_rectificador.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador del Pont Rectificador</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tema 5: Díode Zener -->
+        <div class="topic-group">
+          <div class="topic-title">📌 El Díode Zener</div>
+          <div class="resource-grid">
+            <a href="U2/U2_EleccioZener_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">Elecció del Díode Zener</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_zener.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador del Díode Zener</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tema 6: Font d'Alimentació -->
+        <div class="topic-group">
+          <div class="topic-title">📌 Font d'Alimentació</div>
+          <div class="resource-grid">
+            <a href="U2/U2_FontAlimentacio.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">Fonts d'Alimentació</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulacio_FontAlimentacio.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador Font d'Alimentació</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tema 7: Arrissat i Condensador -->
+        <div class="topic-group">
+          <div class="topic-title">📌 Arrissat i Càlcul del Condensador</div>
+          <div class="resource-grid">
+            <a href="U2/U2_ArrissatCalculC_v2.pdf" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-pdf">PDF</span>
+                <span class="resource-title">Arrissat i Càlcul de C</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+            <a href="U2/simulador_arrissat_calcul_condensador.html" target="_blank" class="resource-item">
+              <div class="resource-info">
+                <span class="badge badge-sim">Simulador</span>
+                <span class="resource-title">Simulador d'Arrissat i Condensador</span>
+              </div>
+              <span class="resource-arrow">→</span>
+            </a>
+          </div>
+        </div>
+
       </div>
-        
-        <div class="resource-grid">
-          <!-- Zener: -->
-          <a href="U2/U2_EleccioZener_v2.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-          <a href="U2/simulador_zener.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador del díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-        </div>
-      </div>
-      
-
-      
-      <div class="resource-grid">
-          <!-- Font alimentacio: -->
-          <a href="U2/U2_FontAlimentacio.pdf" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-          <a href="U2/simulacio_FontAlimentacio.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador del díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-        </div>
-      </div>
-      
-       <div class="resource-grid">
-          <!-- Arrissat: -->
-          <a href="U2/U2_ArrissatCalculC_v2" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-pdf">PDF</span>
-              <span class="resource-title">El Díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-          <a href="U2/simulador_arrissat_calcul_condensador.html" target="_blank" class="resource-item">
-            <div class="resource-info">
-              <span class="badge badge-sim">Simulador</span>
-              <span class="resource-title">Simulador del díode Zener</span>
-            </div>
-            <span class="resource-arrow">→</span>
-          </a>
-
-        </div>
-      </div>
-      
-
     </section>
 
     <!-- UNITAT 3 -->
@@ -277,12 +328,7 @@
         <p class="unit-desc">Amplificadors operacionals, temporitzador NE555 (Astable/Monoestable) i electrònica de potència.</p>
         
         <h3>Recursos i Material</h3>
-        <div class="resource-grid">
-
-          <!-- AFAGEIX ELS TEUS RECURSOS DE LA U3 AQUÍ: -->
-          <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
-
-        </div>
+        <div class="empty-state">Encara no s'han penjat recursos per a aquesta unitat.</div>
       </div>
     </section>
 
@@ -294,7 +340,6 @@
         
         <h3>Eines Recomanades</h3>
         <div class="resource-grid">
-
           <a href="https://www.falstad.com/circuit/" target="_blank" class="resource-item">
             <div class="resource-info">
               <span class="badge badge-sim">Simulador</span>
@@ -318,7 +363,6 @@
             </div>
             <span class="resource-arrow">→</span>
           </a>
-
         </div>
       </div>
     </section>
