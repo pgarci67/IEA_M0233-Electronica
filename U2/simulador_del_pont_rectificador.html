@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador del Pont Rectificador de Graetz - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+    .glow-blue { filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6)); }
+    .glow-red { filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6)); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-wave-square text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador del Pont Rectificador de Graetz</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnPause" onclick="togglePause()" class="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition flex items-center gap-2 border border-slate-600">
+          <i id="pauseIcon" class="fa-solid fa-pause text-amber-400"></i> <span id="pauseText">Pausar</span>
+        </button>
+        <button onclick="resetSimulation()" class="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition flex items-center gap-2 border border-slate-600">
+          <i class="fa-solid fa-rotate-right text-sky-400"></i> Reiniciar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Esquerra: Esquema de Circuit & Oscil·loscopi -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Esquema de Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-microchip text-sky-400"></i> Esquema del Circuit Animat en Temps Real
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm shadow-emerald-500/50"></span> ON (Directa)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-600 inline-block"></span> OFF (Inversa)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="circuitCanvas" width="700" height="320" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Oscil·loscopi -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-display text-rose-400"></i> Oscil·loscopi Virtual (Canal A i Canal B)
+          </h2>
+          <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="text-sky-400 flex items-center gap-1">━ Canal A: V<sub>sec</sub> (AC Entrada)</span>
+            <span class="text-rose-400 flex items-center gap-1">━ Canal B: V<sub>R1</sub> (Sortida Càrrega)</span>
+          </div>
+        </div>
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="scopeCanvas" width="700" height="200" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dreta: Controls i Paràmetres / Càlculs Teòrics -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Paràmetres del Circuit
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <!-- Tensió RMS -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Tensió Secundari (V<sub>rms</sub>):</label>
+              <span id="vRmsVal" class="text-sky-400 font-bold">12 V</span>
+            </div>
+            <input type="range" id="vRmsSlider" min="5" max="30" value="12" step="1" oninput="updateParams()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Freqüència -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Freqüència (f):</label>
+              <span id="freqVal" class="text-sky-400 font-bold">50 Hz</span>
+            </div>
+            <input type="range" id="freqSlider" min="10" max="100" value="50" step="5" oninput="updateParams()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Condensador Filtre C1 -->
+          <div>
+            <div class="flex justify-between mb-1 items-center">
+              <label class="text-slate-300 font-medium flex items-center gap-1.5">
+                <input type="checkbox" id="capToggle" checked onchange="updateParams()" class="accent-sky-500 w-4 h-4 rounded cursor-pointer">
+                Condensador de Filtre (C<sub>1</sub>)
+              </label>
+              <span id="capVal" class="text-sky-400 font-bold">100 µF</span>
+            </div>
+            <input type="range" id="capSlider" min="10" max="470" value="100" step="10" oninput="updateParams()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Resistència de Càrrega R1 -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Resistència de Càrrega (R<sub>1</sub>):</label>
+              <span id="rLoadVal" class="text-sky-400 font-bold">1000 Ω</span>
+            </div>
+            <input type="range" id="rLoadSlider" min="100" max="5000" value="1000" step="100" oninput="updateParams()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Velocitat Simulació -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Velocitat d'Animació:</label>
+              <span id="speedVal" class="text-slate-400 font-medium">1.0x</span>
+            </div>
+            <input type="range" id="speedSlider" min="0.2" max="2" value="1" step="0.1" oninput="updateParams()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Càlculs en Temps Real -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-calculator text-emerald-400"></i> Magnituds Calculades
+        </h2>
+
+        <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+            <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Tensió de Pic V<sub>max</sub></span>
+            <span id="calcVmax" class="text-slate-100 font-bold text-sm">16.97 V</span>
+          </div>
+          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+            <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Caiguda Díodes (2×V<sub>D</sub>)</span>
+            <span class="text-amber-400 font-bold text-sm">1.40 V</span>
+          </div>
+          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+            <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Pic Sortida V<sub>out,max</sub></span>
+            <span id="calcVoutMax" class="text-emerald-400 font-bold text-sm">15.57 V</span>
+          </div>
+          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+            <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Arrissat V<sub>ripple</sub></span>
+            <span id="calcVripple" class="text-rose-400 font-bold text-sm">1.56 V</span>
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-graduation-cap"></i> Recordatori Didàctic:
+          </strong>
+          En cada semicicle del senyal altern, el corrent elèctric només circula per <strong>2 díodes en sèrie</strong>. La direcció del corrent per la resistència $R_1$ és <strong>sempre de dalt cap a baix</strong>, aconseguint una tensió unidireccional.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    // Variables d'Estat
+    let isPaused = false;
+    let time = 0;
+    let speed = 1.0;
+
+    // Paràmetres elèctrics
+    let vRms = 12;
+    let freq = 50;
+    let capEnabled = true;
+    let capVal = 100e-6; // Farads
+    let rLoad = 1000; // Ohms
+    const vDiode = 0.7; // Caiguda per díode de silici
+
+    // Canvas & Contexts
+    const circuitCanvas = document.getElementById('circuitCanvas');
+    const ctxC = circuitCanvas.getContext('2d');
+    const scopeCanvas = document.getElementById('scopeCanvas');
+    const ctxS = scopeCanvas.getContext('2d');
+
+    function updateParams() {
+      vRms = parseFloat(document.getElementById('vRmsSlider').value);
+      freq = parseFloat(document.getElementById('freqSlider').value);
+      capEnabled = document.getElementById('capToggle').checked;
+      capVal = parseFloat(document.getElementById('capSlider').value) * 1e-6;
+      rLoad = parseFloat(document.getElementById('rLoadSlider').value);
+      speed = parseFloat(document.getElementById('speedSlider').value);
+
+      document.getElementById('vRmsVal').innerText = vRms + ' V';
+      document.getElementById('freqVal').innerText = freq + ' Hz';
+      document.getElementById('capVal').innerText = (capVal * 1e6) + ' µF';
+      document.getElementById('rLoadVal').innerText = rLoad + ' Ω';
+      document.getElementById('speedVal').innerText = speed.toFixed(1) + 'x';
+
+      document.getElementById('capSlider').disabled = !capEnabled;
+
+      calculateOutputs();
+    }
+
+    function calculateOutputs() {
+      const vMax = vRms * Math.SQRT2;
+      const vOutMax = Math.max(0, vMax - (2 * vDiode));
+      const iLoad = vOutMax / rLoad;
+      
+      // Freqüència rectificada = 2 * freqüència entrada (100 Hz per 50 Hz)
+      const fRect = 2 * freq; 
+      let vRipple = 0;
+
+      if (capEnabled && capVal > 0) {
+        vRipple = iLoad / (fRect * capVal);
+        if (vRipple > vOutMax) vRipple = vOutMax; // Limitador físic
+      } else {
+        vRipple = vOutMax; // Sense filtre, l'arrissat és el 100%
+      }
+
+      document.getElementById('calcVmax').innerText = vMax.toFixed(2) + ' V';
+      document.getElementById('calcVoutMax').innerText = vOutMax.toFixed(2) + ' V';
+      document.getElementById('calcVripple').innerText = capEnabled ? vRipple.toFixed(2) + ' V' : 'N/A (Sense Filtre)';
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      document.getElementById('pauseIcon').className = isPaused ? 'fa-solid fa-play text-emerald-400' : 'fa-solid fa-pause text-amber-400';
+      document.getElementById('pauseText').innerText = isPaused ? 'Reprendre' : 'Pausar';
+    }
+
+    function resetSimulation() {
+      time = 0;
+      if (isPaused) togglePause();
+    }
+
+    // Dibuix d'un díode en canvas
+    function drawDiode(ctx, x, y, angle, isOn, label) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      const color = isOn ? '#10b981' : '#475569'; // Emerald if ON, Slate if OFF
+      const glowColor = isOn ? 'rgba(16, 185, 129, 0.5)' : 'transparent';
+
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = isOn ? 10 : 0;
+
+      // Triangle del díode
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(-12, -10);
+      ctx.lineTo(-12, 10);
+      ctx.lineTo(8, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Línia vertical del càtode
+      ctx.beginPath();
+      ctx.moveTo(8, -10);
+      ctx.lineTo(8, 10);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Etiqueta del díode
+      ctx.fillStyle = isOn ? '#34d399' : '#94a3b8';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(label + (isOn ? ' (ON)' : ' (OFF)'), x + 12, y - 12);
+    }
+
+    // Animació i dibuix de l'esquema de circuit
+    function drawCircuit(vInInstant) {
+      const w = circuitCanvas.width;
+      const h = circuitCanvas.height;
+      ctxC.clearRect(0, 0, w, h);
+
+      const isPositiveCycle = vInInstant >= 0;
+
+      // Coordenades del Pont
+      const bridgeCX = 320;
+      const bridgeCY = 160;
+      const bW = 80;
+      const bH = 80;
+
+      const top = { x: bridgeCX, y: bridgeCY - bH };
+      const bottom = { x: bridgeCX, y: bridgeCY + bH };
+      const left = { x: bridgeCX - bW, y: bridgeCY };
+      const right = { x: bridgeCX + bW, y: bridgeCY };
+
+      // 1. Dibuix del Transformador (Esquerra)
+      ctxC.strokeStyle = '#38bdf8';
+      ctxC.lineWidth = 3;
+      // Primari
+      ctxC.beginPath();
+      ctxC.arc(70, 120, 15, -Math.PI/2, Math.PI/2);
+      ctxC.arc(70, 150, 15, -Math.PI/2, Math.PI/2);
+      ctxC.arc(70, 180, 15, -Math.PI/2, Math.PI/2);
+      ctxC.stroke();
+
+      // Nucli de ferro
+      ctxC.strokeStyle = '#64748b';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(95, 100); ctxC.lineTo(95, 200);
+      ctxC.moveTo(100, 100); ctxC.lineTo(100, 200);
+      ctxC.stroke();
+
+      // Secundari
+      ctxC.strokeStyle = '#38bdf8';
+      ctxC.lineWidth = 3;
+      ctxC.beginPath();
+      ctxC.arc(125, 120, 15, Math.PI/2, -Math.PI/2);
+      ctxC.arc(125, 150, 15, Math.PI/2, -Math.PI/2);
+      ctxC.arc(125, 180, 15, Math.PI/2, -Math.PI/2);
+      ctxC.stroke();
+
+      // Etiqueta Transformador
+      ctxC.fillStyle = '#94a3b8';
+      ctxC.font = '11px sans-serif';
+      ctxC.fillText('T1 (230V / ' + vRms + 'V)', 65, 80);
+
+      // Conexions secundari -> Pont
+      ctxC.strokeStyle = isPositiveCycle ? '#38bdf8' : '#f43f5e';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(125, 105); ctxC.lineTo(left.x, left.y); // Superior
+      ctxC.stroke();
+
+      ctxC.strokeStyle = isPositiveCycle ? '#f43f5e' : '#38bdf8';
+      ctxC.beginPath();
+      ctxC.moveTo(125, 195); ctxC.lineTo(right.x, right.y); // Inferior
+      ctxC.stroke();
+
+      // 2. Dibuix de les branques del Pont de Graetz
+      // D1: Left -> Top, D2: Bottom -> Left, D3: Right -> Top, D4: Bottom -> Right
+      const d1On = isPositiveCycle;
+      const d2On = !isPositiveCycle;
+      const d3On = !isPositiveCycle;
+      const d4On = isPositiveCycle;
+
+      // Cables del pont
+      const drawWire = (p1, p2, active) => {
+        ctxC.strokeStyle = active ? '#10b981' : '#334155';
+        ctxC.lineWidth = active ? 3 : 1.5;
+        ctxC.beginPath();
+        ctxC.moveTo(p1.x, p1.y);
+        ctxC.lineTo(p2.x, p2.y);
+        ctxC.stroke();
+      };
+
+      drawWire(left, top, d1On);
+      drawWire(bottom, left, d2On);
+      drawWire(right, top, d3On);
+      drawWire(bottom, right, d4On);
+
+      // Dibuix dels 4 Díodes
+      drawDiode(ctxC, (left.x + top.x)/2, (left.y + top.y)/2, Math.PI/4, d1On, 'D1');
+      drawDiode(ctxC, (bottom.x + left.x)/2, (bottom.y + left.y)/2, -Math.PI/4, d2On, 'D2');
+      drawDiode(ctxC, (right.x + top.x)/2, (right.y + top.y)/2, -Math.PI/4, d3On, 'D3');
+      drawDiode(ctxC, (bottom.x + right.x)/2, (bottom.y + right.y)/2, Math.PI/4, d4On, 'D4');
+
+      // 3. Conexions de Sortida (Top -> Càrrega, Bottom -> Massa/Retorn)
+      const loadX = 580;
+      const capX = 480;
+
+      // Línia Positiva Superior
+      ctxC.strokeStyle = '#f43f5e';
+      ctxC.lineWidth = 2.5;
+      ctxC.beginPath();
+      ctxC.moveTo(top.x, top.y);
+      ctxC.lineTo(loadX, top.y);
+      ctxC.stroke();
+
+      // Línia Negativa Inferior (Massa)
+      ctxC.strokeStyle = '#64748b';
+      ctxC.lineWidth = 2.5;
+      ctxC.beginPath();
+      ctxC.moveTo(bottom.x, bottom.y);
+      ctxC.lineTo(loadX, bottom.y);
+      ctxC.stroke();
+
+      // Condensador C1 (si està activat)
+      if (capEnabled) {
+        ctxC.strokeStyle = '#38bdf8';
+        ctxC.lineWidth = 2;
+        ctxC.beginPath();
+        ctxC.moveTo(capX, top.y); ctxC.lineTo(capX, bridgeCY - 15);
+        ctxC.moveTo(capX, bottom.y); ctxC.lineTo(capX, bridgeCY + 15);
+        ctxC.stroke();
+
+        // Plaques Condensador
+        ctxC.fillStyle = '#38bdf8';
+        ctxC.fillRect(capX - 15, bridgeCY - 15, 30, 4);
+        ctxC.fillRect(capX - 15, bridgeCY + 11, 30, 4);
+
+        ctxC.fillStyle = '#94a3b8';
+        ctxC.font = 'bold 11px sans-serif';
+        ctxC.fillText('C1 (' + (capVal*1e6) + 'µF)', capX - 25, bridgeCY + 35);
+      }
+
+      // Resistència de Càrrega R1
+      ctxC.strokeStyle = '#f59e0b';
+      ctxC.lineWidth = 2;
+      ctxC.beginPath();
+      ctxC.moveTo(loadX, top.y); ctxC.lineTo(loadX, bridgeCY - 30);
+      
+      // Zig-zag resistència
+      let ry = bridgeCY - 30;
+      const rH = 60;
+      ctxC.lineTo(loadX - 8, ry + 10);
+      ctxC.lineTo(loadX + 8, ry + 20);
+      ctxC.lineTo(loadX - 8, ry + 30);
+      ctxC.lineTo(loadX + 8, ry + 40);
+      ctxC.lineTo(loadX, ry + 50);
+      ctxC.lineTo(loadX, bottom.y);
+      ctxC.stroke();
+
+      // Etiqueta R1
+      ctxC.fillStyle = '#f59e0b';
+      ctxC.font = 'bold 12px sans-serif';
+      ctxC.fillText('R1 (' + rLoad + ' Ω)', loadX + 15, bridgeCY);
+
+      // Fletxa de sentit de corrent a la càrrega (Sempre de dalt a baix)
+      if (!isPaused && Math.abs(vInInstant) > 1.4) {
+        const arrowY = (time * 100 * speed) % 120 + (bridgeCY - 60);
+        ctxC.fillStyle = '#f43f5e';
+        ctxC.beginPath();
+        ctxC.arc(loadX, arrowY, 4, 0, Math.PI * 2);
+        ctxC.fill();
+      }
+
+      // Indicador de Polaritat a la càrrega
+      ctxC.fillStyle = '#f43f5e';
+      ctxC.font = 'bold 14px sans-serif';
+      ctxC.fillText('+', loadX - 18, top.y + 20);
+      ctxC.fillStyle = '#64748b';
+      ctxC.fillText('-', loadX - 16, bottom.y - 10);
+    }
+
+    // Dibuix de l'Oscil·loscopi
+    function drawScope() {
+      const w = scopeCanvas.width;
+      const h = scopeCanvas.height;
+      ctxS.clearRect(0, 0, w, h);
+
+      // Quadrícula Oscil·loscopi
+      ctxS.strokeStyle = '#1e293b';
+      ctxS.lineWidth = 1;
+      for (let x = 0; x < w; x += 35) { ctxS.beginPath(); ctxS.moveTo(x, 0); ctxS.lineTo(x, h); ctxS.stroke(); }
+      for (let y = 0; y < h; y += 35) { ctxS.beginPath(); ctxS.moveTo(0, y); ctxS.lineTo(w, y); ctxS.stroke(); }
+
+      // Eix central de zero
+      ctxS.strokeStyle = '#475569';
+      ctxS.lineWidth = 1.5;
+      ctxS.beginPath(); ctxS.moveTo(0, h/2); ctxS.lineTo(w, h/2); ctxS.stroke();
+
+      const vMax = vRms * Math.SQRT2;
+      const scaleY = (h / 2 - 20) / (vMax + 5);
+
+      // Canal A: Tensió d'Entrada Sinusoïdal (Blau)
+      ctxS.strokeStyle = '#38bdf8';
+      ctxS.lineWidth = 2;
+      ctxS.beginPath();
+      for (let x = 0; x < w; x++) {
+        const t = (x - time * 60 * speed) * 0.03;
+        const vIn = Math.sin(t * (freq / 50)) * vMax;
+        const y = h/2 - vIn * scaleY;
+        if (x === 0) ctxS.moveTo(x, y); else ctxS.lineTo(x, y);
+      }
+      ctxS.stroke();
+
+      // Canal B: Tensió de Sortida Rectificada / Filtrada (Vermell/Rosa)
+      ctxS.strokeStyle = '#f43f5e';
+      ctxS.lineWidth = 2.5;
+      ctxS.beginPath();
+
+      const vOutMax = Math.max(0, vMax - (2 * vDiode));
+      const iLoad = vOutMax / rLoad;
+      const fRect = 2 * freq;
+      let vRipple = capEnabled ? (iLoad / (fRect * capVal)) : vOutMax;
+      if (vRipple > vOutMax) vRipple = vOutMax;
+
+      for (let x = 0; x < w; x++) {
+        const t = (x - time * 60 * speed) * 0.03;
+        const vIn = Math.sin(t * (freq / 50)) * vMax;
+        let vRect = Math.max(0, Math.abs(vIn) - (2 * vDiode));
+
+        let vOut = vRect;
+        if (capEnabled) {
+          // Modelització simplificada de càrrega i descàrrega del condensador
+          const phase = Math.abs(Math.sin(t * (freq / 50)));
+          const discharge = (1 - phase) * vRipple;
+          vOut = Math.max(vRect, vOutMax - discharge);
+        }
+
+        const y = h/2 - vOut * scaleY;
+        if (x === 0) ctxS.moveTo(x, y); else ctxS.lineTo(x, y);
+      }
+      ctxS.stroke();
+    }
+
+    // Bucle principal d'animació
+    function animate() {
+      if (!isPaused) {
+        time += 0.016;
+      }
+
+      const vMax = vRms * Math.SQRT2;
+      const currentVIn = Math.sin(time * 60 * speed * 0.03 * (freq / 50)) * vMax;
+
+      drawCircuit(currentVIn);
+      drawScope();
+
+      requestAnimationFrame(animate);
+    }
+
+    // Inicialització en carregar la pàgina
+    window.onload = () => {
+      updateParams();
+      animate();
+    };
+  </script>
+</body>
+</html>
