@@ -10,8 +10,6 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
     canvas { display: block; }
-    .glow-blue { filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6)); }
-    .glow-red { filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6)); }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
@@ -57,7 +55,7 @@
           </div>
         </div>
         <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
-          <canvas id="circuitCanvas" width="700" height="320" class="max-w-full h-auto"></canvas>
+          <canvas id="circuitCanvas" width="700" height="340" class="max-w-full h-auto"></canvas>
         </div>
       </div>
 
@@ -168,7 +166,7 @@
           <strong class="text-sky-400 block mb-1 flex items-center gap-1">
             <i class="fa-solid fa-graduation-cap"></i> Recordatori Didàctic:
           </strong>
-          En cada semicicle del senyal altern, el corrent elèctric només circula per <strong>2 díodes en sèrie</strong>. La direcció del corrent per la resistència $R_1$ és <strong>sempre de dalt cap a baix</strong>, aconseguint una tensió unidireccional.
+          En cada semicicle del senyal altern, el corrent elèctric només circula per <strong>2 díodes en sèrie</strong>. La direcció del corrent per la resistència R<sub>1</sub> és <strong>sempre de dalt cap a baix</strong>, aconseguint una tensió unidireccional.
         </div>
       </div>
 
@@ -225,15 +223,14 @@
       const vOutMax = Math.max(0, vMax - (2 * vDiode));
       const iLoad = vOutMax / rLoad;
       
-      // Freqüència rectificada = 2 * freqüència entrada (100 Hz per 50 Hz)
       const fRect = 2 * freq; 
       let vRipple = 0;
 
       if (capEnabled && capVal > 0) {
         vRipple = iLoad / (fRect * capVal);
-        if (vRipple > vOutMax) vRipple = vOutMax; // Limitador físic
+        if (vRipple > vOutMax) vRipple = vOutMax;
       } else {
-        vRipple = vOutMax; // Sense filtre, l'arrissat és el 100%
+        vRipple = vOutMax;
       }
 
       document.getElementById('calcVmax').innerText = vMax.toFixed(2) + ' V';
@@ -252,13 +249,13 @@
       if (isPaused) togglePause();
     }
 
-    // Dibuix d'un díode en canvas
+    // Dibuix d'un díode en canvas (Ortogonal: angle -Math.PI/2 verticalment)
     function drawDiode(ctx, x, y, angle, isOn, label) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
 
-      const color = isOn ? '#10b981' : '#475569'; // Emerald if ON, Slate if OFF
+      const color = isOn ? '#10b981' : '#475569';
       const glowColor = isOn ? 'rgba(16, 185, 129, 0.5)' : 'transparent';
 
       ctx.shadowColor = glowColor;
@@ -270,16 +267,16 @@
       ctx.lineWidth = 2;
 
       ctx.beginPath();
-      ctx.moveTo(-12, -10);
-      ctx.lineTo(-12, 10);
+      ctx.moveTo(-10, -8);
+      ctx.lineTo(-10, 8);
       ctx.lineTo(8, 0);
       ctx.closePath();
       ctx.fill();
 
       // Línia vertical del càtode
       ctx.beginPath();
-      ctx.moveTo(8, -10);
-      ctx.lineTo(8, 10);
+      ctx.moveTo(8, -8);
+      ctx.lineTo(8, 8);
       ctx.stroke();
 
       ctx.restore();
@@ -287,10 +284,10 @@
       // Etiqueta del díode
       ctx.fillStyle = isOn ? '#34d399' : '#94a3b8';
       ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(label + (isOn ? ' (ON)' : ' (OFF)'), x + 12, y - 12);
+      ctx.fillText(label + (isOn ? ' (ON)' : ' (OFF)'), x + 16, y + 4);
     }
 
-    // Animació i dibuix de l'esquema de circuit
+    // Animació i dibuix de l'esquema de circuit ORTOGONAL amb entrades CA a les unions mitjanes
     function drawCircuit(vInInstant) {
       const w = circuitCanvas.width;
       const h = circuitCanvas.height;
@@ -298,165 +295,188 @@
 
       const isPositiveCycle = vInInstant >= 0;
 
-      // Coordenades del Pont
-      const bridgeCX = 320;
-      const bridgeCY = 160;
-      const bW = 80;
-      const bH = 80;
-
-      const top = { x: bridgeCX, y: bridgeCY - bH };
-      const bottom = { x: bridgeCX, y: bridgeCY + bH };
-      const left = { x: bridgeCX - bW, y: bridgeCY };
-      const right = { x: bridgeCX + bW, y: bridgeCY };
-
       // 1. Dibuix del Transformador (Esquerra)
       ctxC.strokeStyle = '#38bdf8';
       ctxC.lineWidth = 3;
       // Primari
       ctxC.beginPath();
-      ctxC.arc(70, 120, 15, -Math.PI/2, Math.PI/2);
-      ctxC.arc(70, 150, 15, -Math.PI/2, Math.PI/2);
-      ctxC.arc(70, 180, 15, -Math.PI/2, Math.PI/2);
+      ctxC.arc(60, 130, 15, -Math.PI/2, Math.PI/2);
+      ctxC.arc(60, 160, 15, -Math.PI/2, Math.PI/2);
+      ctxC.arc(60, 190, 15, -Math.PI/2, Math.PI/2);
       ctxC.stroke();
 
       // Nucli de ferro
       ctxC.strokeStyle = '#64748b';
       ctxC.lineWidth = 2;
       ctxC.beginPath();
-      ctxC.moveTo(95, 100); ctxC.lineTo(95, 200);
-      ctxC.moveTo(100, 100); ctxC.lineTo(100, 200);
+      ctxC.moveTo(85, 110); ctxC.lineTo(85, 210);
+      ctxC.moveTo(90, 110); ctxC.lineTo(90, 210);
       ctxC.stroke();
 
       // Secundari
       ctxC.strokeStyle = '#38bdf8';
       ctxC.lineWidth = 3;
       ctxC.beginPath();
-      ctxC.arc(125, 120, 15, Math.PI/2, -Math.PI/2);
-      ctxC.arc(125, 150, 15, Math.PI/2, -Math.PI/2);
-      ctxC.arc(125, 180, 15, Math.PI/2, -Math.PI/2);
+      ctxC.arc(115, 130, 15, Math.PI/2, -Math.PI/2);
+      ctxC.arc(115, 160, 15, Math.PI/2, -Math.PI/2);
+      ctxC.arc(115, 190, 15, Math.PI/2, -Math.PI/2);
       ctxC.stroke();
 
       // Etiqueta Transformador
       ctxC.fillStyle = '#94a3b8';
       ctxC.font = '11px sans-serif';
-      ctxC.fillText('T1 (230V / ' + vRms + 'V)', 65, 80);
+      ctxC.fillText('T1 (230V / ' + vRms + 'V)', 55, 90);
 
-      // Conexions secundari -> Pont
+      // Coordenades del Pont Rectificador
+      const leftAC_X = 220;
+      const rightAC_X = 360;
+      const topDC_Y = 60;
+      const bottomDC_Y = 260;
+      const midY = 160;
+
+      // 2. Connexions del Secundari ENTREDISSENYADES (Arriben als punts mitjans entre díodes)
+      // Terminal Superior del secundari (y=115) -> Unió mitjana esquerra (leftAC_X, midY)
       ctxC.strokeStyle = isPositiveCycle ? '#38bdf8' : '#f43f5e';
       ctxC.lineWidth = 2;
       ctxC.beginPath();
-      ctxC.moveTo(125, 105); ctxC.lineTo(left.x, left.y); // Superior
+      ctxC.moveTo(115, 115);
+      ctxC.lineTo(170, 115);
+      ctxC.lineTo(170, midY);
+      ctxC.lineTo(leftAC_X, midY);
       ctxC.stroke();
 
+      // Terminal Inferior del secundari (y=205) -> Unió mitjana dreta (rightAC_X, midY)
       ctxC.strokeStyle = isPositiveCycle ? '#f43f5e' : '#38bdf8';
       ctxC.beginPath();
-      ctxC.moveTo(125, 195); ctxC.lineTo(right.x, right.y); // Inferior
+      ctxC.moveTo(115, 205);
+      ctxC.lineTo(190, 205);
+      ctxC.lineTo(190, 290);
+      ctxC.lineTo(rightAC_X + 40, 290);
+      ctxC.lineTo(rightAC_X + 40, midY);
+      ctxC.lineTo(rightAC_X, midY);
       ctxC.stroke();
 
-      // 2. Dibuix de les branques del Pont de Graetz
-      // D1: Left -> Top, D2: Bottom -> Left, D3: Right -> Top, D4: Bottom -> Right
+      // 3. Branques del Pont de Graetz
       const d1On = isPositiveCycle;
       const d2On = !isPositiveCycle;
       const d3On = !isPositiveCycle;
       const d4On = isPositiveCycle;
 
-      // Cables del pont
-      const drawWire = (p1, p2, active) => {
+      const drawSegment = (x1, y1, x2, y2, active) => {
         ctxC.strokeStyle = active ? '#10b981' : '#334155';
         ctxC.lineWidth = active ? 3 : 1.5;
         ctxC.beginPath();
-        ctxC.moveTo(p1.x, p1.y);
-        ctxC.lineTo(p2.x, p2.y);
+        ctxC.moveTo(x1, y1);
+        ctxC.lineTo(x2, y2);
         ctxC.stroke();
       };
 
-      drawWire(left, top, d1On);
-      drawWire(bottom, left, d2On);
-      drawWire(right, top, d3On);
-      drawWire(bottom, right, d4On);
+      // Branca Esquerra Superior (D1: des de la unió mitjana AC cap al bus superior DC)
+      drawSegment(leftAC_X, midY, leftAC_X, topDC_Y, d1On);
 
-      // Dibuix dels 4 Díodes
-      drawDiode(ctxC, (left.x + top.x)/2, (left.y + top.y)/2, Math.PI/4, d1On, 'D1');
-      drawDiode(ctxC, (bottom.x + left.x)/2, (bottom.y + left.y)/2, -Math.PI/4, d2On, 'D2');
-      drawDiode(ctxC, (right.x + top.x)/2, (right.y + top.y)/2, -Math.PI/4, d3On, 'D3');
-      drawDiode(ctxC, (bottom.x + right.x)/2, (bottom.y + right.y)/2, Math.PI/4, d4On, 'D4');
+      // Branca Esquerra Inferior (D2: des del bus inferior DC cap a la unió mitjana AC)
+      drawSegment(leftAC_X, bottomDC_Y, leftAC_X, midY, d2On);
 
-      // 3. Conexions de Sortida (Top -> Càrrega, Bottom -> Massa/Retorn)
+      // Branca Dreta Superior (D3: des de la unió mitjana AC cap al bus superior DC)
+      drawSegment(rightAC_X, midY, rightAC_X, topDC_Y, d3On);
+
+      // Branca Dreta Inferior (D4: des del bus inferior DC cap a la unió mitjana AC)
+      drawSegment(rightAC_X, bottomDC_Y, rightAC_X, midY, d4On);
+
+      // Bus Superior DC (Connecta D1 i D3)
+      drawSegment(leftAC_X, topDC_Y, rightAC_X, topDC_Y, d1On || d3On);
+
+      // Bus Inferior DC (Connecta D2 i D4)
+      drawSegment(leftAC_X, bottomDC_Y, rightAC_X, bottomDC_Y, d2On || d4On);
+
+      // Dibuix dels 4 Díodes col·locats entre les branques
+      // D1 (Entre midY i topDC_Y, a y=110)
+      drawDiode(ctxC, leftAC_X, 110, -Math.PI/2, d1On, 'D1');
+      // D2 (Entre bottomDC_Y i midY, a y=210)
+      drawDiode(ctxC, leftAC_X, 210, -Math.PI/2, d2On, 'D2');
+      // D3 (Entre midY i topDC_Y, a y=110)
+      drawDiode(ctxC, rightAC_X, 110, -Math.PI/2, d3On, 'D3');
+      // D4 (Entre bottomDC_Y i midY, a y=210)
+      drawDiode(ctxC, rightAC_X, 210, -Math.PI/2, d4On, 'D4');
+
+      // Nodes/Punts de connexió (Unions entre els díodes)
+      ctxC.fillStyle = '#38bdf8';
+      ctxC.beginPath(); ctxC.arc(leftAC_X, midY, 4, 0, Math.PI * 2); ctxC.fill();
+      ctxC.beginPath(); ctxC.arc(rightAC_X, midY, 4, 0, Math.PI * 2); ctxC.fill();
+
+      // 4. Connectors i Sortides a Càrrega
       const loadX = 580;
       const capX = 480;
 
-      // Línia Positiva Superior
+      // Bus Positiu Superior a la Càrrega
       ctxC.strokeStyle = '#f43f5e';
       ctxC.lineWidth = 2.5;
       ctxC.beginPath();
-      ctxC.moveTo(top.x, top.y);
-      ctxC.lineTo(loadX, top.y);
+      ctxC.moveTo(rightAC_X, topDC_Y);
+      ctxC.lineTo(loadX, topDC_Y);
       ctxC.stroke();
 
-      // Línia Negativa Inferior (Massa)
+      // Bus Negatiu Inferior a la Càrrega
       ctxC.strokeStyle = '#64748b';
       ctxC.lineWidth = 2.5;
       ctxC.beginPath();
-      ctxC.moveTo(bottom.x, bottom.y);
-      ctxC.lineTo(loadX, bottom.y);
+      ctxC.moveTo(rightAC_X, bottomDC_Y);
+      ctxC.lineTo(loadX, bottomDC_Y);
       ctxC.stroke();
 
-      // Condensador C1 (si està activat)
+      // Condensador C1
       if (capEnabled) {
         ctxC.strokeStyle = '#38bdf8';
         ctxC.lineWidth = 2;
         ctxC.beginPath();
-        ctxC.moveTo(capX, top.y); ctxC.lineTo(capX, bridgeCY - 15);
-        ctxC.moveTo(capX, bottom.y); ctxC.lineTo(capX, bridgeCY + 15);
+        ctxC.moveTo(capX, topDC_Y); ctxC.lineTo(capX, midY - 15);
+        ctxC.moveTo(capX, bottomDC_Y); ctxC.lineTo(capX, midY + 15);
         ctxC.stroke();
 
-        // Plaques Condensador
         ctxC.fillStyle = '#38bdf8';
-        ctxC.fillRect(capX - 15, bridgeCY - 15, 30, 4);
-        ctxC.fillRect(capX - 15, bridgeCY + 11, 30, 4);
+        ctxC.fillRect(capX - 15, midY - 15, 30, 4);
+        ctxC.fillRect(capX - 15, midY + 11, 30, 4);
 
         ctxC.fillStyle = '#94a3b8';
         ctxC.font = 'bold 11px sans-serif';
-        ctxC.fillText('C1 (' + (capVal*1e6) + 'µF)', capX - 25, bridgeCY + 35);
+        ctxC.fillText('C1 (' + (capVal*1e6) + 'µF)', capX - 25, midY + 35);
       }
 
-      // Resistència de Càrrega R1
+      // Resistència R1 (Vertical)
       ctxC.strokeStyle = '#f59e0b';
       ctxC.lineWidth = 2;
       ctxC.beginPath();
-      ctxC.moveTo(loadX, top.y); ctxC.lineTo(loadX, bridgeCY - 30);
+      ctxC.moveTo(loadX, topDC_Y); ctxC.lineTo(loadX, midY - 30);
       
-      // Zig-zag resistència
-      let ry = bridgeCY - 30;
-      const rH = 60;
+      let ry = midY - 30;
       ctxC.lineTo(loadX - 8, ry + 10);
       ctxC.lineTo(loadX + 8, ry + 20);
       ctxC.lineTo(loadX - 8, ry + 30);
       ctxC.lineTo(loadX + 8, ry + 40);
       ctxC.lineTo(loadX, ry + 50);
-      ctxC.lineTo(loadX, bottom.y);
+      ctxC.lineTo(loadX, bottomDC_Y);
       ctxC.stroke();
 
-      // Etiqueta R1
+      // Etiquetes
       ctxC.fillStyle = '#f59e0b';
       ctxC.font = 'bold 12px sans-serif';
-      ctxC.fillText('R1 (' + rLoad + ' Ω)', loadX + 15, bridgeCY);
+      ctxC.fillText('R1 (' + rLoad + ' Ω)', loadX + 15, midY);
 
-      // Fletxa de sentit de corrent a la càrrega (Sempre de dalt a baix)
+      // Fletxa de sentit de corrent (Només vertical de dalt a baix)
       if (!isPaused && Math.abs(vInInstant) > 1.4) {
-        const arrowY = (time * 100 * speed) % 120 + (bridgeCY - 60);
+        const arrowY = (time * 100 * speed) % 160 + (topDC_Y + 20);
         ctxC.fillStyle = '#f43f5e';
         ctxC.beginPath();
         ctxC.arc(loadX, arrowY, 4, 0, Math.PI * 2);
         ctxC.fill();
       }
 
-      // Indicador de Polaritat a la càrrega
+      // Indicadors de Polaritat
       ctxC.fillStyle = '#f43f5e';
       ctxC.font = 'bold 14px sans-serif';
-      ctxC.fillText('+', loadX - 18, top.y + 20);
+      ctxC.fillText('+', loadX - 18, topDC_Y + 20);
       ctxC.fillStyle = '#64748b';
-      ctxC.fillText('-', loadX - 16, bottom.y - 10);
+      ctxC.fillText('-', loadX - 16, bottomDC_Y - 10);
     }
 
     // Dibuix de l'Oscil·loscopi
@@ -509,7 +529,6 @@
 
         let vOut = vRect;
         if (capEnabled) {
-          // Modelització simplificada de càrrega i descàrrega del condensador
           const phase = Math.abs(Math.sin(t * (freq / 50)));
           const discharge = (1 - phase) * vRipple;
           vOut = Math.max(vRect, vOutMax - discharge);
