@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Portes Lògiques - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-microchip text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de Portes Lògiques Fonamentals</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas)</p>
+        </div>
+      </div>
+      
+      <!-- Selector de Porta Lògica -->
+      <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-700 text-xs">
+        <span class="text-slate-400 font-medium pl-2">Porta:</span>
+        <select id="gateSelect" onchange="changeGate()" class="bg-slate-800 border border-slate-700 font-bold text-sky-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer">
+          <option value="NOT">NOT (Inversor)</option>
+          <option value="AND" selected>AND (I lògica)</option>
+          <option value="OR">OR (O lògica)</option>
+          <option value="XOR">XOR (O exclusiva)</option>
+          <option value="NAND">NAND (NO-I)</option>
+          <option value="NOR">NOR (NO-O)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Canvas Interactiu i Controls -->
+    <div class="lg:col-span-7 flex flex-col gap-5">
+      
+      <!-- Card principal (Canvas Esquematitzat) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project text-sky-400"></i> Esquema de Simulació en Temps Real
+          </h2>
+          <span class="text-xs font-mono px-2.5 py-1 rounded-lg border bg-slate-900" id="outputBadge">
+            Sortida S = 0
+          </span>
+        </div>
+
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="logicCanvas" width="680" height="340" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Controls d'Entrada (Switches) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-toggle-on text-amber-400"></i> Interruptors d'Entrada Lògica
+        </h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Switch Entrada A -->
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-slate-400 block font-medium">Entrada A</span>
+              <span id="lblStateA" class="font-mono text-lg font-bold text-rose-400">0 (LÒGIC LOW)</span>
+            </div>
+            <button id="btnSwitchA" onclick="toggleInput('A')" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold hover:bg-slate-700 transition active:scale-95 shadow">
+              Commuta A
+            </button>
+          </div>
+
+          <!-- Switch Entrada B -->
+          <div id="boxInputB" class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-slate-400 block font-medium">Entrada B</span>
+              <span id="lblStateB" class="font-mono text-lg font-bold text-rose-400">0 (LÒGIC LOW)</span>
+            </div>
+            <button id="btnSwitchB" onclick="toggleInput('B')" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold hover:bg-slate-700 transition active:scale-95 shadow">
+              Commuta B
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Taula de Veritat i Teoria -->
+    <div class="lg:col-span-5 flex flex-col gap-5">
+      
+      <!-- Taula de Veritat dinàmica -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-table text-emerald-400"></i> Taula de Veritat Dinàmica
+        </h2>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-center text-xs font-mono">
+            <thead id="tableHead" class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
+              <!-- S'omple dinàmicament per JS -->
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-800/60">
+              <!-- S'omple dinàmicament per JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resum Teòric i Funció Lògica -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-square-root-variable text-sky-400"></i> Funció i Propietats Lògiques
+          </h2>
+
+          <div class="space-y-3">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <span class="text-[11px] text-slate-400 block mb-1">Equació Booleana:</span>
+              <span id="txtEquation" class="text-lg font-bold font-mono text-sky-400">S = A · B</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <span class="text-[11px] text-slate-400 block mb-1">Comportament i Observacions:</span>
+              <p id="txtDescription" class="text-xs text-slate-300 leading-relaxed">
+                La sortida NOMÉS és 1 si totes les entrades són 1.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200 mt-4">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-graduation-cap"></i> Recordatori Docent:
+          </strong>
+          Tots els símbols dibuixats utilitzen l'estàndard americà (US/ANSI). Les entrades es mantenen directes sense inversors per rigorositat en el mòdul.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let currentGate = 'AND';
+    let stateA = 0;
+    let stateB = 0;
+
+    const cvs = document.getElementById('logicCanvas');
+    const ctx = cvs.getContext('2d');
+
+    const truthTables = {
+      NOT: [
+        { inputs: [0], out: 1 },
+        { inputs: [1], out: 0 }
+      ],
+      AND: [
+        { inputs: [0, 0], out: 0 },
+        { inputs: [0, 1], out: 0 },
+        { inputs: [1, 0], out: 0 },
+        { inputs: [1, 1], out: 1 }
+      ],
+      OR: [
+        { inputs: [0, 0], out: 0 },
+        { inputs: [0, 1], out: 1 },
+        { inputs: [1, 0], out: 1 },
+        { inputs: [1, 1], out: 1 }
+      ],
+      XOR: [
+        { inputs: [0, 0], out: 0 },
+        { inputs: [0, 1], out: 1 },
+        { inputs: [1, 0], out: 1 },
+        { inputs: [1, 1], out: 0 }
+      ],
+      NAND: [
+        { inputs: [0, 0], out: 1 },
+        { inputs: [0, 1], out: 1 },
+        { inputs: [1, 0], out: 1 },
+        { inputs: [1, 1], out: 0 }
+      ],
+      NOR: [
+        { inputs: [0, 0], out: 1 },
+        { inputs: [0, 1], out: 0 },
+        { inputs: [1, 0], out: 0 },
+        { inputs: [1, 1], out: 0 }
+      ]
+    };
+
+    const infoGate = {
+      NOT: { eq: 'S = A̅', desc: 'La sortida és sempre el valor contrari de l\'entrada (Inversor lògic).' },
+      AND: { eq: 'S = A · B', desc: 'La sortida NOMÉS és 1 si totes les entrades són iguals a 1.' },
+      OR: { eq: 'S = A + B', desc: 'La sortida és 1 sempre que hi hagi almenys un 1 a qualsevol entrada.' },
+      XOR: { eq: 'S = A ⊕ B', desc: 'La sortida és 1 només si el nombre de 1s a les entrades és senar (entrades diferents).' },
+      NAND: { eq: 'S = A · B', desc: 'És la porta oposada a la AND (NAND = AND + NOT).' },
+      NOR: { eq: 'S = A + B', desc: 'És la porta oposada a la OR (NOR = OR + NOT).' }
+    };
+
+    function calculateOutput(gate, a, b) {
+      switch (gate) {
+        case 'NOT': return a === 0 ? 1 : 0;
+        case 'AND': return (a === 1 && b === 1) ? 1 : 0;
+        case 'OR': return (a === 1 || b === 1) ? 1 : 0;
+        case 'XOR': return (a !== b) ? 1 : 0;
+        case 'NAND': return !(a === 1 && b === 1) ? 1 : 0;
+        case 'NOR': return !(a === 1 || b === 1) ? 1 : 0;
+      }
+    }
+
+    function toggleInput(input) {
+      if (input === 'A') stateA = stateA === 0 ? 1 : 0;
+      if (input === 'B') stateB = stateB === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function changeGate() {
+      currentGate = document.getElementById('gateSelect').value;
+      const boxB = document.getElementById('boxInputB');
+      if (currentGate === 'NOT') {
+        boxB.style.display = 'none';
+      } else {
+        boxB.style.display = 'flex';
+      }
+      updateUI();
+    }
+
+    function updateUI() {
+      const out = calculateOutput(currentGate, stateA, stateB);
+
+      // Etiquetes de botons i estats
+      document.getElementById('lblStateA').innerText = stateA === 1 ? '1 (LÒGIC HIGH)' : '0 (LÒGIC LOW)';
+      document.getElementById('lblStateA').className = stateA === 1 ? 'font-mono text-lg font-bold text-emerald-400' : 'font-mono text-lg font-bold text-rose-400';
+
+      document.getElementById('lblStateB').innerText = stateB === 1 ? '1 (LÒGIC HIGH)' : '0 (LÒGIC LOW)';
+      document.getElementById('lblStateB').className = stateB === 1 ? 'font-mono text-lg font-bold text-emerald-400' : 'font-mono text-lg font-bold text-rose-400';
+
+      const badge = document.getElementById('outputBadge');
+      if (out === 1) {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-500/20 border-emerald-500/50 text-emerald-300";
+        badge.innerText = "Sortida S = 1 (ACTIVA)";
+      } else {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-rose-500/20 border-rose-500/50 text-rose-300";
+        badge.innerText = "Sortida S = 0 (INACTIVA)";
+      }
+
+      // Actualitzar equació i descripció
+      document.getElementById('txtEquation').innerText = infoGate[currentGate].eq;
+      document.getElementById('txtDescription').innerText = infoGate[currentGate].desc;
+
+      // Renderitzar taula de veritat
+      renderTruthTable(out);
+
+      // Dibuixar esquema canvas
+      drawCanvas(out);
+    }
+
+    function renderTruthTable(currentOut) {
+      const head = document.getElementById('tableHead');
+      const body = document.getElementById('tableBody');
+
+      if (currentGate === 'NOT') {
+        head.innerHTML = `<tr><th class="py-2 px-3">A</th><th class="py-2 px-3">S</th></tr>`;
+      } else {
+        head.innerHTML = `<tr><th class="py-2 px-3">A</th><th class="py-2 px-3">B</th><th class="py-2 px-3">S</th></tr>`;
+      }
+
+      let html = '';
+      truthTables[currentGate].forEach(row => {
+        let isActiveRow = false;
+        if (currentGate === 'NOT') {
+          isActiveRow = (row.inputs[0] === stateA);
+        } else {
+          isActiveRow = (row.inputs[0] === stateA && row.inputs[1] === stateB);
+        }
+
+        const rowBg = isActiveRow ? 'bg-sky-600/30 text-sky-200 font-bold' : 'hover:bg-slate-800/40 text-slate-300';
+        const outColor = row.out === 1 ? 'text-emerald-400 font-bold' : 'text-slate-500';
+
+        if (currentGate === 'NOT') {
+          html += `<tr class="${rowBg} transition-colors">
+            <td class="py-2 px-3">${row.inputs[0]}</td>
+            <td class="py-2 px-3 ${outColor}">${row.out}</td>
+          </tr>`;
+        } else {
+          html += `<tr class="${rowBg} transition-colors">
+            <td class="py-2 px-3">${row.inputs[0]}</td>
+            <td class="py-2 px-3">${row.inputs[1]}</td>
+            <td class="py-2 px-3 ${outColor}">${row.out}</td>
+          </tr>`;
+        }
+      });
+      body.innerHTML = html;
+    }
+
+    function drawCanvas(outState) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const centerX = cvs.width / 2;
+      const centerY = cvs.height / 2;
+
+      // Colors de bus lògic
+      const colorOn = '#10b981';
+      const colorOff = '#f43f5e';
+      const colorLineOff = '#475569';
+
+      // --- 1. DIBUIX DE LÍNIES D'ENTRADA ---
+      if (currentGate === 'NOT') {
+        const colA = stateA === 1 ? colorOn : colorOff;
+        ctx.strokeStyle = colA; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(120, centerY); ctx.lineTo(centerX - 40, centerY); ctx.stroke();
+
+        ctx.fillStyle = colA; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Entrada A = ' + stateA, 120, centerY - 12);
+      } else {
+        const colA = stateA === 1 ? colorOn : colorOff;
+        const colB = stateB === 1 ? colorOn : colorOff;
+
+        // Linia A
+        ctx.strokeStyle = colA; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(120, centerY - 45); ctx.lineTo(centerX - 40, centerY - 45); ctx.stroke();
+        ctx.fillStyle = colA; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Entrada A = ' + stateA, 120, centerY - 55);
+
+        // Linia B
+        ctx.strokeStyle = colB; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(120, centerY + 45); ctx.lineTo(centerX - 40, centerY + 45); ctx.stroke();
+        ctx.fillStyle = colB; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Entrada B = ' + stateB, 120, centerY + 65);
+      }
+
+      // --- 2. DIBUIX DE LA PORTA LÒGICA (SÍMBOLS ANSI/US) ---
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2.5; ctx.fillStyle = '#0f172a';
+
+      switch (currentGate) {
+        case 'NOT':
+          ctx.beginPath();
+          ctx.moveTo(-40, -35); ctx.lineTo(20, 0); ctx.lineTo(-40, 35);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          // Cèrcul inversor sortida
+          ctx.beginPath(); ctx.arc(28, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          break;
+
+        case 'AND':
+          ctx.beginPath();
+          ctx.moveTo(-40, -50); ctx.lineTo(0, -50);
+          ctx.arc(0, 0, 50, -Math.PI / 2, Math.PI / 2);
+          ctx.lineTo(-40, 50);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          break;
+
+        case 'NAND':
+          ctx.beginPath();
+          ctx.moveTo(-40, -50); ctx.lineTo(0, -50);
+          ctx.arc(0, 0, 50, -Math.PI / 2, Math.PI / 2);
+          ctx.lineTo(-40, 50);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          // Cèrcul inversor sortida
+          ctx.beginPath(); ctx.arc(57, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          break;
+
+        case 'OR':
+          ctx.beginPath();
+          ctx.moveTo(-40, -50);
+          ctx.quadraticCurveTo(-15, 0, -40, 50);
+          ctx.quadraticCurveTo(15, 50, 45, 0);
+          ctx.quadraticCurveTo(15, -50, -40, -50);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          break;
+
+        case 'NOR':
+          ctx.beginPath();
+          ctx.moveTo(-40, -50);
+          ctx.quadraticCurveTo(-15, 0, -40, 50);
+          ctx.quadraticCurveTo(15, 50, 45, 0);
+          ctx.quadraticCurveTo(15, -50, -40, -50);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          // Cèrcul inversor sortida
+          ctx.beginPath(); ctx.arc(52, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          break;
+
+        case 'XOR':
+          // Línia posterior extra
+          ctx.beginPath();
+          ctx.moveTo(-52, -50); ctx.quadraticCurveTo(-27, 0, -52, 50);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(-40, -50);
+          ctx.quadraticCurveTo(-15, 0, -40, 50);
+          ctx.quadraticCurveTo(15, 50, 45, 0);
+          ctx.quadraticCurveTo(15, -50, -40, -50);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          break;
+      }
+
+      ctx.fillStyle = '#sky-400'; ctx.font = 'bold 15px sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(currentGate, -15, 5);
+
+      ctx.restore();
+
+      // --- 3. DIBUIX DE LÍNIA I INDICADOR DE SORTIDA S ---
+      let startOutX = centerX + 50;
+      if (currentGate === 'NOT') startOutX = centerX + 35;
+      if (currentGate === 'NAND') startOutX = centerX + 64;
+      if (currentGate === 'NOR') startOutX = centerX + 59;
+      if (currentGate === 'XOR') startOutX = centerX + 45;
+
+      const colOut = outState === 1 ? colorOn : colorOff;
+      ctx.strokeStyle = colOut; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(startOutX, centerY); ctx.lineTo(cvs.width - 130, centerY); ctx.stroke();
+
+      // Bombeta / Led de Sortida S
+      const lampX = cvs.width - 90;
+      const lampY = centerY;
+
+      if (outState === 1) {
+        // Resplendor groc/verd radiant
+        const grad = ctx.createRadialGradient(lampX, lampY, 5, lampX, lampY, 35);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.9)');
+        grad.addColorStop(0.5, 'rgba(16, 185, 129, 0.4)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(lampX, lampY, 35, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#10b981'; ctx.strokeStyle = '#059669'; ctx.lineWidth = 2.5;
+      } else {
+        ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      }
+
+      ctx.beginPath(); ctx.arc(lampX, lampY, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      // Text interior bombeta
+      ctx.fillStyle = outState === 1 ? '#ffffff' : '#94a3b8'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('S', lampX - 4, lampY + 4);
+
+      ctx.fillStyle = colOut; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Sortida S = ' + outState, lampX - 35, lampY + 38);
+    }
+
+    window.onload = () => {
+      changeGate();
+    };
+  </script>
+</body>
+</html>
