@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Disseny de Circuits amb AOs - EE10</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-microchip text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de Disseny amb AOs en Cascada</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas v2.3)</p>
+        </div>
+      </div>
+      
+      <!-- Selectors de Vista -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700 text-xs">
+        <button id="btnViewFull" onclick="setView('full')" class="px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition">
+          <i class="fa-solid fa-diagram-project mr-1"></i> Circuit Esquemàtic
+        </button>
+        <button id="btnViewBlocks" onclick="setView('blocks')" class="px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-cubes mr-1"></i> Diagrama de Blocs
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Canvas i Mesures Nodals -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Esquema -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-code-branch text-sky-400"></i> 
+            Funció Objectiu: <span class="text-emerald-400 font-mono text-base">V<sub>out</sub> = -3 · (2·V<sub>1</sub> - 4·V<sub>2</sub>)</span>
+          </h2>
+          <span class="text-xs font-medium px-2.5 py-1 rounded-lg border bg-slate-900" id="satBadge">
+            Zona Lineal (±15V)
+          </span>
+        </div>
+
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="mainCanvas" width="720" height="380" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Lectura de Sondes Virtuals (Nodes) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-gauge-high text-amber-400"></i> Mesures als Nodes (Sondes CC)
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center font-mono text-xs">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Node V<sub>a</sub> (U3 V-)</span>
+            <span id="valVa" class="font-bold text-sky-400">300 mV</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Node V<sub>b</sub> (U2 V-)</span>
+            <span id="valVb" class="font-bold text-emerald-400">0.00 V</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Node V<sub>c</sub> (U1 V-)</span>
+            <span id="valVc" class="font-bold text-emerald-400">0.00 V</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">V<sub>out1</sub> (U3)</span>
+            <span id="valVout1" class="font-bold text-sky-400">600 mV</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">V<sub>out2</sub> (U2)</span>
+            <span id="valVout2" class="font-bold text-amber-400">-400 mV</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">V<sub>out</sub> (Final)</span>
+            <span id="valVout" class="font-bold text-rose-400">-600 mV</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Controls, Desglossament i Test -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control: Sliders -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Fonts de CC d'Entrada (-1V a +1V)
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <!-- Slider V1 (en mV) -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Entrada V<sub>1</sub> (No Inversora U3):</label>
+              <span id="txtV1" class="text-sky-400 font-bold">300 mV (0.30 V)</span>
+            </div>
+            <input type="range" id="sliderV1" min="-1000" max="1000" value="300" step="50" oninput="updateSim()" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Slider V2 (en mV) -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Entrada V<sub>2</sub> (Inversora U2):</label>
+              <span id="txtV2" class="text-amber-400 font-bold">100 mV (0.10 V)</span>
+            </div>
+            <input type="range" id="sliderV2" min="-1000" max="1000" value="100" step="50" oninput="updateSim()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Desenvolupament Matemàtic Pas a Pas -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-calculator text-emerald-400"></i> Desenvolupament en Temps Real
+          </h2>
+
+          <div id="mathBox" class="font-mono text-xs space-y-2 text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed">
+            <!-- Emplenat dinàmicament -->
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200 mt-3">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-shield-halved"></i> Protecció per Saturació (Vcc = ±15V):
+          </strong>
+          Si la tensió teòrica de sortida supera els límits d'alimentació ($\pm 15\text{ V}$), l'amplificador entra en l'estat de saturació.
+        </div>
+      </div>
+
+      <!-- Test d'Autoavaluació -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-sky-400"></i> Test d'Autoavaluació
+          </h2>
+          <span id="quizScore" class="text-xs font-mono font-bold text-sky-400">0/3 Encerts</span>
+        </div>
+
+        <!-- Pregunta 1 -->
+        <div class="space-y-1 text-xs">
+          <p class="text-slate-300 font-medium">1. Quin és el límit de tensió màxim a la sortida abans de la saturació?</p>
+          <div class="grid grid-cols-3 gap-1 text-center">
+            <button onclick="checkQuiz(1, false, this)" class="q1-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">±5 V</button>
+            <button onclick="checkQuiz(1, false, this)" class="q1-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">±10 V</button>
+            <button onclick="checkQuiz(1, true, this)" class="q1-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">±15 V</button>
+          </div>
+        </div>
+
+        <!-- Pregunta 2 -->
+        <div class="space-y-1 text-xs pt-2 border-t border-slate-700/60">
+          <p class="text-slate-300 font-medium">2. Com està connectada R5 a l'etapa no inversora U3?</p>
+          <div class="grid grid-cols-2 gap-1 text-center">
+            <button onclick="checkQuiz(2, true, this)" class="q2-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">Entre Entrada (-) i Massa</button>
+            <button onclick="checkQuiz(2, false, this)" class="q2-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">Entre Entrada (+) i V1</button>
+          </div>
+        </div>
+
+        <!-- Pregunta 3 -->
+        <div class="space-y-1 text-xs pt-2 border-t border-slate-700/60">
+          <p class="text-slate-300 font-medium">3. Si V1 = 800mV i V2 = -500mV, què li passa a la sortida Vout?</p>
+          <div class="grid grid-cols-3 gap-1 text-center">
+            <button onclick="checkQuiz(3, false, this)" class="q3-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">-10.8 V</button>
+            <button onclick="checkQuiz(3, true, this)" class="q3-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">Satura (-15 V)</button>
+            <button onclick="checkQuiz(3, false, this)" class="q3-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition">+15 V</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let currentView = 'full';
+    let quizState = { q1: false, q2: false, q3: false };
+
+    const cvs = document.getElementById('mainCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function setView(mode) {
+      currentView = mode;
+      document.getElementById('btnViewFull').className = mode === 'full' 
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+      
+      document.getElementById('btnViewBlocks').className = mode === 'blocks'
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+
+      updateSim();
+    }
+
+    function updateSim() {
+      const v1_mv = parseFloat(document.getElementById('sliderV1').value);
+      const v2_mv = parseFloat(document.getElementById('sliderV2').value);
+
+      const v1 = v1_mv / 1000.0;
+      const v2 = v2_mv / 1000.0;
+
+      document.getElementById('txtV1').innerText = `${v1_mv} mV (${v1.toFixed(2)} V)`;
+      document.getElementById('txtV2').innerText = `${v2_mv} mV (${v2.toFixed(2)} V)`;
+
+      const vOut1 = 2 * v1;
+      const vOut2 = -4 * v2;
+      const vOutTheo = -3 * (vOut1 + vOut2);
+
+      let vOutReal = vOutTheo;
+      let isSaturated = false;
+
+      if (vOutTheo > 15.0) {
+        vOutReal = 15.0;
+        isSaturated = true;
+      } else if (vOutTheo < -15.0) {
+        vOutReal = -15.0;
+        isSaturated = true;
+      }
+
+      const badge = document.getElementById('satBadge');
+      if (isSaturated) {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse";
+        badge.innerText = `Saturació AO (${vOutReal > 0 ? '+15V' : '-15V'})`;
+      } else {
+        badge.className = "text-xs font-medium px-2.5 py-1 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-300";
+        badge.innerText = "Zona Lineal (±15V)";
+      }
+
+      document.getElementById('valVa').innerText = formatVoltage(v1);
+      document.getElementById('valVb').innerText = '0.00 V';
+      document.getElementById('valVc').innerText = '0.00 V';
+      document.getElementById('valVout1').innerText = formatVoltage(vOut1);
+      document.getElementById('valVout2').innerText = formatVoltage(vOut2);
+      document.getElementById('valVout').innerText = isSaturated ? `${vOutReal.toFixed(2)} V (SAT)` : formatVoltage(vOutReal);
+
+      document.getElementById('mathBox').innerHTML = `
+        <div><strong class="text-sky-400">1. Etapa U3 (No Inversor):</strong><br>Vout1 = 2 &middot; (${v1_mv}mV) = <span class="text-sky-400 font-bold">${formatVoltage(vOut1)}</span></div>
+        <div><strong class="text-amber-400">2. Etapa U2 (Inversor):</strong><br>Vout2 = -4 &middot; (${v2_mv}mV) = <span class="text-amber-400 font-bold">${formatVoltage(vOut2)}</span></div>
+        <div><strong class="text-emerald-400">3. Etapa U1 (Sumador):</strong><br>Vout Teòrica = -3 &middot; (${(vOut1).toFixed(2)}V + ${(vOut2).toFixed(2)}V) = ${vOutTheo.toFixed(2)}V</div>
+        <div class="pt-1 border-t border-slate-800"><strong class="text-rose-400">Sortida Real amb Limiti de ±15V:</strong><br><span class="text-rose-400 font-bold text-sm">${vOutReal.toFixed(2)} V ${isSaturated ? '(Saturat a la font!)' : ''}</span></div>
+      `;
+
+      if (currentView === 'full') {
+        drawFullSchematic(v1, v2, vOut1, vOut2, vOutReal, isSaturated);
+      } else {
+        drawBlockDiagram(v1, v2, vOut1, vOut2, vOutReal, isSaturated);
+      }
+    }
+
+    function formatVoltage(v) {
+      if (Math.abs(v) < 1.0 && v !== 0) {
+        return (v * 1000).toFixed(1) + ' mV';
+      }
+      return v.toFixed(2) + ' V';
+    }
+
+    function drawGND(c, x, y) {
+      c.save(); c.strokeStyle = '#64748b'; c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(x - 8, y); c.lineTo(x + 8, y);
+      c.moveTo(x - 5, y + 3); c.lineTo(x + 5, y + 3);
+      c.moveTo(x - 2, y + 6); c.lineTo(x + 2, y + 6);
+      c.stroke(); c.restore();
+    }
+
+    function drawDC(c, x, y, label, v) {
+      c.save(); c.translate(x, y);
+      
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(-12, -5); c.lineTo(12, -5); c.stroke();
+      
+      c.lineWidth = 3.5;
+      c.beginPath(); c.moveTo(-6, 5); c.lineTo(6, 5); c.stroke();
+
+      c.fillStyle = '#f59e0b'; c.font = 'bold 11px sans-serif';
+      c.fillText(label, -45, -2); c.font = '10px sans-serif';
+      c.fillText(formatVoltage(v), -45, 10);
+      c.restore();
+    }
+
+    function drawR(c, x, y, vert, label) {
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      if (vert) {
+        c.fillRect(x - 7, y - 14, 14, 28);
+        c.strokeRect(x - 7, y - 14, 14, 28);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x + 10, y + 3);
+      } else {
+        c.fillRect(x - 14, y - 7, 28, 14);
+        c.strokeRect(x - 14, y - 7, 28, 14);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x - 10, y - 11);
+      }
+      c.restore();
+    }
+
+    function drawAO(c, x, y, name) {
+      const s = 42;
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath();
+      c.moveTo(x - s, y - s); c.lineTo(x - s, y + s); c.lineTo(x + s, y);
+      c.closePath(); c.fill(); c.stroke();
+
+      c.fillStyle = '#e2e8f0'; c.font = 'bold 12px sans-serif';
+      c.fillText('-', x - s + 6, y - s/2 + 4);
+      c.fillText('+', x - s + 5, y + s/2 + 4);
+
+      c.fillStyle = '#64748b'; c.font = '10px sans-serif';
+      c.fillText(name, x - 14, y + 3);
+      c.restore();
+    }
+
+    function drawFullSchematic(v1, v2, vOut1, vOut2, vOut, saturated) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      // --- ETAPA 1: U3 (No Inversor) ---
+      const u3X = 220, u3Y = 95;
+      drawAO(ctx, u3X, u3Y, 'U3');
+
+      // Font V1 posada abaix i conductor sortint des del pol (+)
+      const src1X = 50, src1Y = u3Y + 50;
+      drawDC(ctx, src1X, src1Y, 'V1', v1);
+      
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(src1X, src1Y - 5);
+      ctx.lineTo(src1X, u3Y + 21);
+      ctx.lineTo(u3X - 42, u3Y + 21);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#64748b'; ctx.beginPath();
+      ctx.moveTo(src1X, src1Y + 5); ctx.lineTo(src1X, src1Y + 22);
+      ctx.stroke();
+      drawGND(ctx, src1X, src1Y + 22);
+
+      // Node d'entrada inversora (-) de U3
+      const nodeU3 = 140;
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u3X - 42, u3Y - 21); ctx.lineTo(nodeU3, u3Y - 21); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(nodeU3, u3Y - 21, 3, 0, Math.PI*2); ctx.fill();
+
+      // R5 HORITZONTAL ELEVADA (connectada netament a terra)
+      ctx.strokeStyle = '#cbd5e1'; ctx.beginPath();
+      ctx.moveTo(nodeU3, u3Y - 21); ctx.lineTo(nodeU3 - 15, u3Y - 21);
+      ctx.stroke();
+
+      drawR(ctx, nodeU3 - 30, u3Y - 21, false, 'R5 1kΩ');
+
+      ctx.strokeStyle = '#64748b'; ctx.beginPath();
+      ctx.moveTo(nodeU3 - 44, u3Y - 21); ctx.lineTo(nodeU3 - 60, u3Y - 21);
+      ctx.stroke();
+      drawGND(ctx, nodeU3 - 60, u3Y - 21);
+
+      // R6 en bucle superior cap a la sortida Vout1
+      ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(nodeU3, u3Y - 21); ctx.lineTo(nodeU3, 20); ctx.lineTo(290, 20); ctx.lineTo(290, u3Y); ctx.stroke();
+      drawR(ctx, 215, 20, false, 'R6 1kΩ');
+
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(u3X + 42, u3Y); ctx.lineTo(320, u3Y); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('Vout1 = ' + formatVoltage(vOut1), 255, u3Y - 6);
+
+      // --- ETAPA 2: U2 (Inversor) ---
+      const u2X = 220, u2Y = 285;
+      drawAO(ctx, u2X, u2Y, 'U2');
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u2X - 42, u2Y + 21); ctx.lineTo(u2X - 60, u2Y + 21); ctx.stroke();
+      drawGND(ctx, u2X - 60, u2Y + 21);
+
+      const nodeU2 = 140;
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u2X - 42, u2Y - 21); ctx.lineTo(nodeU2, u2Y - 21); ctx.stroke();
+      ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(nodeU2, u2Y - 21, 3, 0, Math.PI*2); ctx.fill();
+
+      // CONEXIÓN COMPLETA DE R3 EN AMBOS EXTREMOS
+      const src2X = 30, src2Y = u2Y + 30;
+      drawR(ctx, 85, u2Y - 21, false, 'R3 1kΩ');
+
+      // Conductor desde V2 hasta el lado izquierdo de R3
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath();
+      ctx.moveTo(src2X, src2Y - 5);
+      ctx.lineTo(src2X, u2Y - 21);
+      ctx.lineTo(71, u2Y - 21); // Lado izquierdo de R3!
+      ctx.stroke();
+
+      // Conductor desde el lado derecho de R3 hasta el nodeU2
+      ctx.beginPath();
+      ctx.moveTo(99, u2Y - 21);
+      ctx.lineTo(nodeU2, u2Y - 21); // Lado derecho de R3!
+      ctx.stroke();
+
+      // Font V2 amb etiqueta V2
+      drawDC(ctx, src2X, src2Y, 'V2', v2);
+
+      ctx.strokeStyle = '#64748b'; ctx.beginPath();
+      ctx.moveTo(src2X, src2Y + 5); ctx.lineTo(src2X, src2Y + 22);
+      ctx.stroke();
+      drawGND(ctx, src2X, src2Y + 22);
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(nodeU2, u2Y - 21); ctx.lineTo(nodeU2, u2Y - 50); ctx.lineTo(290, u2Y - 50); ctx.lineTo(290, u2Y); ctx.stroke();
+      drawR(ctx, 215, u2Y - 50, false, 'R4 4kΩ');
+
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(u2X + 42, u2Y); ctx.lineTo(320, u2Y); ctx.stroke();
+      ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('Vout2 = ' + formatVoltage(vOut2), 255, u2Y + 16);
+
+      // --- ETAPA 3: U1 (Sumador Inversor) ---
+      const u1X = 540, u1Y = 190;
+      drawAO(ctx, u1X, u1Y, 'U1');
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u1X - 42, u1Y + 21); ctx.lineTo(u1X - 60, u1Y + 21); ctx.stroke();
+      drawGND(ctx, u1X - 60, u1Y + 21);
+
+      const nodeSum = 450;
+      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(u1X - 42, u1Y - 21); ctx.lineTo(nodeSum, u1Y - 21); ctx.stroke();
+      ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(nodeSum, u1Y - 21, 4, 0, Math.PI*2); ctx.fill();
+
+      ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(320, u3Y); ctx.lineTo(370, u3Y); ctx.lineTo(370, u1Y - 38); ctx.lineTo(nodeSum, u1Y - 38); ctx.lineTo(nodeSum, u1Y - 21); ctx.stroke();
+      drawR(ctx, 410, u1Y - 38, false, 'R1 1kΩ');
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(320, u2Y); ctx.lineTo(370, u2Y); ctx.lineTo(370, u1Y + 5); ctx.lineTo(nodeSum, u1Y + 5); ctx.lineTo(nodeSum, u1Y - 21); ctx.stroke();
+      drawR(ctx, 410, u1Y + 5, false, 'R1_bis 1kΩ');
+
+      ctx.strokeStyle = saturated ? '#f43f5e' : '#10b981'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(nodeSum, u1Y - 21); ctx.lineTo(nodeSum, u1Y - 70); ctx.lineTo(620, u1Y - 70); ctx.lineTo(620, u1Y); ctx.stroke();
+      drawR(ctx, 535, u1Y - 70, false, 'R2 3kΩ');
+
+      ctx.strokeStyle = saturated ? '#f43f5e' : '#10b981'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(u1X + 42, u1Y); ctx.lineTo(685, u1Y); ctx.stroke();
+      ctx.fillStyle = saturated ? '#f43f5e' : '#10b981'; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Vout = ' + vOut.toFixed(2) + ' V' + (saturated ? ' (SAT)' : ''), 595, u1Y - 12);
+      ctx.beginPath(); ctx.arc(685, u1Y, 5, 0, Math.PI*2); ctx.fill();
+    }
+
+    function drawBlockDiagram(v1, v2, vOut1, vOut2, vOut, saturated) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.fillRect(100, 70, 160, 80); ctx.strokeRect(100, 70, 160, 80);
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Etapa 1: No Inversor', 115, 95);
+      ctx.font = '11px sans-serif'; ctx.fillText('Guany = +2 (U3)', 115, 115);
+      ctx.fillText('Vout1 = ' + formatVoltage(vOut1), 115, 135);
+
+      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.fillRect(100, 220, 160, 80); ctx.strokeRect(100, 220, 160, 80);
+      ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Etapa 2: Inversor', 115, 245);
+      ctx.font = '11px sans-serif'; ctx.fillText('Guany = -4 (U2)', 115, 265);
+      ctx.fillText('Vout2 = ' + formatVoltage(vOut2), 115, 285);
+
+      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = saturated ? '#f43f5e' : '#10b981'; ctx.lineWidth = 2.5;
+      ctx.fillRect(420, 140, 180, 90); ctx.strokeRect(420, 140, 180, 90);
+      ctx.fillStyle = saturated ? '#f43f5e' : '#10b981'; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Etapa 3: Sumador Inversor', 430, 168);
+      ctx.font = '11px sans-serif'; ctx.fillText('Guany = -3 (U1)', 430, 190);
+      ctx.fillText('Vout = -3·(Vout1 + Vout2)', 430, 210);
+
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(260, 110); ctx.lineTo(350, 110); ctx.lineTo(350, 165); ctx.lineTo(420, 165); ctx.stroke();
+
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(260, 260); ctx.lineTo(350, 260); ctx.lineTo(350, 205); ctx.lineTo(420, 205); ctx.stroke();
+
+      ctx.strokeStyle = saturated ? '#f43f5e' : '#10b981'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(600, 185); ctx.lineTo(680, 185); ctx.stroke();
+      ctx.fillStyle = saturated ? '#f43f5e' : '#10b981'; ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('Vout = ' + vOut.toFixed(2) + ' V' + (saturated ? ' (SAT)' : ''), 585, 170);
+    }
+
+    function checkQuiz(qNum, isCorrect, btnElement) {
+      const btns = document.querySelectorAll(`.q${qNum}-btn`);
+      btns.forEach(b => {
+        b.className = "q" + qNum + "-btn p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-700 transition text-slate-300";
+      });
+
+      if (isCorrect) {
+        btnElement.className = "q" + qNum + "-btn p-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold transition";
+        quizState['q' + qNum] = true;
+      } else {
+        btnElement.className = "q" + qNum + "-btn p-1.5 rounded-lg bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold transition";
+        quizState['q' + qNum] = false;
+      }
+
+      const total = Object.values(quizState).filter(Boolean).length;
+      document.getElementById('quizScore').innerText = `${total}/3 Encerts`;
+    }
+
+    window.onload = () => {
+      updateSim();
+    };
+  </script>
+</body>
+</html>

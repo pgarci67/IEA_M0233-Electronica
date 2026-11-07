@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Tiristor en CA - EE10</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-bolt text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de Tiristor (SCR) en Corrent Altern</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas v1.3)</p>
+        </div>
+      </div>
+      
+      <!-- Selectors de Vista -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700 text-xs">
+        <button id="btnViewFull" onclick="setView('full')" class="px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition">
+          <i class="fa-solid fa-diagram-project mr-1"></i> Circuit Esquemàtic
+        </button>
+        <button id="btnViewScope" onclick="setView('scope')" class="px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-desktop mr-1"></i> Oscil·loscopi (2 Canals)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Canvas i Mesures Nodals -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Card: Canvas del Circuit o Oscil·loscopi -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2" id="canvasTitle">
+            <i class="fa-solid fa-code-branch text-sky-400"></i> Esquema de Control de Potència per SCR en CA
+          </h2>
+          <span class="text-xs font-mono px-2.5 py-1 rounded-lg border bg-slate-900" id="scrStateBadge">
+            Bloqueig (Off)
+          </span>
+        </div>
+
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="mainCanvas" width="740" height="400" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Lectura d'Instruments de Mesura -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-gauge-high text-amber-400"></i> Mesures dels Multímetres Virtuals (Multisim)
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono text-xs">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Amperímetre U2 (IG)</span>
+            <span id="valIg" class="font-bold text-amber-400">4.16 mA</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Amperímetre U3 (IA)</span>
+            <span id="valIa" class="font-bold text-sky-400">0.16 A</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Voltímetre U1 (Vlamp)</span>
+            <span id="valVlamp" class="font-bold text-emerald-400">22.58 Vrms</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Voltímetre VSCR (VAK)</span>
+            <span id="valVak" class="font-bold text-rose-400">117.80 Vrms</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Controls i Teoria -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Panel de Control: Potenciòmetre de Porta -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Ajust de Corrent de Porta (IG)
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Potenciòmetre R1 (5 kΩ):</label>
+              <span id="txtR1" class="text-amber-400 font-bold">50% (IG = 4.16 mA)</span>
+            </div>
+            <input type="range" id="sliderR1" min="0" max="100" value="50" step="1" oninput="updateSim()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>0% (Màx IG)</span>
+              <span>50%</span>
+              <span>100% (Mín IG)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explicació Matemàtica / Anàlisi -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-circle-info text-emerald-400"></i> Estat del Tiristor en CA
+          </h2>
+
+          <div id="mathBox" class="font-mono text-xs space-y-2 text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed">
+            <!-- Emplenat dinàmicament per JS -->
+          </div>
+        </div>
+
+        <div class="bg-sky-950/40 border border-sky-800/50 rounded-xl p-3 text-[11px] leading-relaxed text-sky-200 mt-3">
+          <strong class="text-sky-400 block mb-1 flex items-center gap-1">
+            <i class="fa-solid fa-lightbulb"></i> Conducció Asimètrica en CA:
+          </strong>
+          - <strong>Semiperíode Positiu ($V_A > V_K$):</strong> Si $I_G \ge 5\text{ mA}$, el tiristor entra en conducció i fa encendre la bombeta.<br>
+          - <strong>Semiperíode Negatiu ($V_A < V_K$):</strong> El tiristor es tanca automàticament per commutació natural.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let currentView = 'full';
+
+    const cvs = document.getElementById('mainCanvas');
+    const ctx = cvs.getContext('2d');
+
+    const IG_TRIGGER = 5.0; // 5mA mínim d'excitació
+
+    function setView(mode) {
+      currentView = mode;
+      document.getElementById('btnViewFull').className = mode === 'full' 
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+      
+      document.getElementById('btnViewScope').className = mode === 'scope'
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+
+      document.getElementById('canvasTitle').innerHTML = mode === 'full'
+        ? `<i class="fa-solid fa-code-branch text-sky-400"></i> Esquema de Control de Potència per SCR en CA`
+        : `<i class="fa-solid fa-desktop text-emerald-400"></i> Oscil·loscopi Virtual (Canal A: Font V1 vs Canal B: VAK)`;
+
+      updateSim();
+    }
+
+    function updateSim() {
+      const pos = parseFloat(document.getElementById('sliderR1').value);
+      
+      const rGate = 1000 + (pos / 100) * 5000;
+      const ig = (12.0 / rGate) * 1000; // mA
+
+      const isTriggered = ig >= IG_TRIGGER;
+
+      document.getElementById('txtR1').innerText = `${pos}% (IG = ${ig.toFixed(2)} mA)`;
+      document.getElementById('valIg').innerText = `${ig.toFixed(3)} mA`;
+
+      const badge = document.getElementById('scrStateBadge');
+      if (isTriggered) {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-500/20 border-emerald-500/50 text-emerald-300";
+        badge.innerText = "Conducció Activa (Bombeta Encesa)";
+
+        document.getElementById('valIa').innerText = "0.47 A";
+        document.getElementById('valVlamp').innerText = "67.50 Vrms";
+        document.getElementById('valVak').innerText = "52.50 Vrms";
+      } else {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-rose-500/20 border-rose-500/50 text-rose-300";
+        badge.innerText = "Bloqueig (Bombeta Apagada)";
+
+        document.getElementById('valIa').innerText = "0.16 A";
+        document.getElementById('valVlamp').innerText = "22.58 Vrms";
+        document.getElementById('valVak').innerText = "117.80 Vrms";
+      }
+
+      document.getElementById('mathBox').innerHTML = `
+        <div><strong class="text-amber-400">Corrent de Porta (IG):</strong> ${ig.toFixed(2)} mA ${isTriggered ? '≥ 5 mA (Suficient)' : '< 5 mA (Insuficient)'}</div>
+        <div><strong class="text-sky-400">Estat de Conducció:</strong> ${isTriggered ? '<span class="text-emerald-400 font-bold">Activat durant el semiperíode +</span>' : '<span class="text-rose-400 font-bold">Bloquejat permanentment</span>'}</div>
+        <div class="pt-1 border-t border-slate-800"><strong class="text-slate-400">Estat de la Càrrega:</strong><br>${isTriggered ? '<span class="text-amber-300 font-bold">💡 La bombeta X1 s\'encén fortament!</span>' : '<span class="text-slate-500">⚫ La bombeta X1 roman apagada.</span>'}</div>
+      `;
+
+      if (currentView === 'full') {
+        drawSchematic(ig, isTriggered, pos);
+      } else {
+        drawOscilloscope(isTriggered);
+      }
+    }
+
+    function drawMeter(c, x, y, name, valStr, colorStr) {
+      c.save();
+      c.fillStyle = '#1e293b'; c.strokeStyle = colorStr; c.lineWidth = 1.5;
+      c.fillRect(x - 30, y - 14, 60, 28);
+      c.strokeRect(x - 30, y - 14, 60, 28);
+
+      c.fillStyle = '#94a3b8'; c.font = 'bold 9px sans-serif';
+      c.fillText(name, x - 26, y - 4);
+
+      c.fillStyle = colorStr; c.font = 'bold 10px monospace';
+      c.fillText(valStr, x - 26, y + 9);
+      c.restore();
+    }
+
+    function drawGND(c, x, y) {
+      c.save(); c.strokeStyle = '#64748b'; c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(x - 8, y); c.lineTo(x + 8, y);
+      c.moveTo(x - 5, y + 3); c.lineTo(x + 5, y + 3);
+      c.moveTo(x - 2, y + 6); c.lineTo(x + 2, y + 6);
+      c.stroke(); c.restore();
+    }
+
+    function drawACSource(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+
+      c.beginPath();
+      c.moveTo(-8, 0);
+      c.quadraticCurveTo(-4, -8, 0, 0);
+      c.quadraticCurveTo(4, 8, 8, 0);
+      c.stroke();
+
+      c.fillStyle = '#f59e0b'; c.font = 'bold 10px sans-serif';
+      c.fillText(label, 22, 4);
+      c.restore();
+    }
+
+    function drawDCSource(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(-12, -5); c.lineTo(12, -5); c.stroke();
+      c.lineWidth = 3.5;
+      c.beginPath(); c.moveTo(-6, 5); c.lineTo(6, 5); c.stroke();
+
+      c.fillStyle = '#f59e0b'; c.font = 'bold 10px sans-serif';
+      c.fillText(label, -45, 3);
+      c.restore();
+    }
+
+    function drawR(c, x, y, vert, label) {
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      if (vert) {
+        c.fillRect(x - 7, y - 14, 14, 28);
+        c.strokeRect(x - 7, y - 14, 14, 28);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x + 10, y + 3);
+      } else {
+        c.fillRect(x - 14, y - 7, 28, 14);
+        c.strokeRect(x - 14, y - 7, 28, 14);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x - 10, y - 11);
+      }
+      c.restore();
+    }
+
+    function drawPot(c, x, y, label, pct) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.fillRect(-7, -18, 14, 36);
+      c.strokeRect(-7, -18, 14, 36);
+
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2;
+      c.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(7, 0); ctx.stroke();
+      c.fillStyle = '#f59e0b';
+      c.beginPath(); ctx.moveTo(7, -4); ctx.lineTo(0, 0); ctx.lineTo(7, 4); ctx.fill();
+
+      c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+      c.fillText(label + ` (${pct}%)`, -35, -24);
+      c.restore();
+    }
+
+    // Dibuix Dinàmic de la Bombeta amb Resplendor (Glow) quan condueix
+    function drawLamp(c, x, y, label, isOn) {
+      c.save(); c.translate(x, y);
+
+      if (isOn) {
+        // Efecte Glow radiant groc quan s'encén
+        const grad = c.createRadialGradient(0, 0, 5, 0, 0, 32);
+        grad.addColorStop(0, 'rgba(253, 224, 71, 0.9)');
+        grad.addColorStop(0.5, 'rgba(234, 179, 8, 0.4)');
+        grad.addColorStop(1, 'rgba(234, 179, 8, 0)');
+        
+        c.fillStyle = grad;
+        c.beginPath(); c.arc(0, 0, 32, 0, Math.PI * 2); c.fill();
+
+        c.fillStyle = '#fde047'; c.strokeStyle = '#eab308'; c.lineWidth = 2.5;
+      } else {
+        c.fillStyle = '#1e293b'; c.strokeStyle = '#64748b'; c.lineWidth = 2;
+      }
+
+      c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+
+      // Filaments interiors
+      c.strokeStyle = isOn ? '#78350f' : '#64748b'; c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(-8, -8); c.lineTo(8, 8);
+      c.moveTo(-8, 8); c.lineTo(8, -8);
+      c.stroke();
+
+      c.fillStyle = isOn ? '#fde047' : '#cbd5e1'; c.font = 'bold 10px sans-serif';
+      c.fillText(label, -22, -22);
+      c.restore();
+    }
+
+    function drawSCR(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+
+      c.beginPath();
+      c.moveTo(-12, -12); c.lineTo(12, -12); c.lineTo(0, 8);
+      c.closePath(); c.fill(); c.stroke();
+
+      c.beginPath(); c.moveTo(-12, 8); c.lineTo(12, 8); c.stroke();
+
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-16, 2); c.lineTo(-6, 2); c.stroke();
+
+      c.fillStyle = '#cbd5e1'; c.font = 'bold 10px sans-serif';
+      c.fillText(label, 16, 2);
+      c.restore();
+    }
+
+    function drawSchematic(ig, isTriggered, potPos) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const groundY = 340;
+
+      // 1. Línia de massa comuna
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(35, groundY); ctx.lineTo(650, groundY); ctx.stroke();
+      drawGND(ctx, 350, groundY);
+
+      // 2. Circuit de Porta
+      const v2X = 45, v2Y = 240;
+      drawDCSource(ctx, v2X, v2Y, 'V2 (12V)');
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(v2X, v2Y + 5); ctx.lineTo(v2X, groundY); ctx.stroke();
+
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(v2X, v2Y - 5); ctx.lineTo(v2X, 130); ctx.lineTo(105, 130); ctx.stroke();
+      drawR(ctx, 119, 130, false, 'R2 100Ω');
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(133, 130); ctx.lineTo(200, 130); ctx.lineTo(200, 182); ctx.stroke();
+      drawPot(ctx, 200, 200, 'R1 5kΩ', potPos);
+
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(215, 200); ctx.lineTo(270, 200); ctx.stroke();
+      
+      const u2Str = ig.toFixed(2) + ' mA';
+      drawMeter(ctx, 300, 200, 'U2 (IG)', u2Str, '#f59e0b');
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(330, 200); ctx.lineTo(394, 200); ctx.lineTo(394, 232); ctx.stroke();
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(200, 218); ctx.lineTo(200, groundY); ctx.stroke();
+
+      // 3. Circuit Principal de Potència
+      const scrX = 410, scrY = 230;
+      drawSCR(ctx, scrX, scrY, 'D1 (2N6398)');
+
+      const iaStr = isTriggered ? '0.47 A' : '0.16 A';
+      drawMeter(ctx, 410, 60, 'U3 (IA)', iaStr, '#38bdf8');
+
+      // Bombeta X1 amb encesa/apagada dinàmica
+      const lampX = scrX, lampY = 130;
+      drawLamp(ctx, lampX, lampY, 'X1 (120V 100W)', isTriggered);
+
+      const vlampStr = isTriggered ? '67.5 V' : '22.6 V';
+      drawMeter(ctx, 520, 130, 'U1 (Vlamp)', vlampStr, '#10b981');
+      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(410, 95); ctx.lineTo(520, 95); ctx.lineTo(520, 116); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(410, 175); ctx.lineTo(520, 175); ctx.lineTo(520, 144); ctx.stroke();
+
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(410, 74); ctx.lineTo(lampX, lampY - 16); ctx.stroke();
+
+      ctx.strokeStyle = isTriggered ? '#fde047' : '#cbd5e1'; ctx.lineWidth = isTriggered ? 3 : 2;
+      ctx.beginPath(); ctx.moveTo(lampX, lampY + 16); ctx.lineTo(scrX, scrY - 12); ctx.stroke();
+
+      const vakStr = isTriggered ? '52.5 V' : '117.8 V';
+      drawMeter(ctx, 520, 230, 'VSCR (VAK)', vakStr, '#f43f5e');
+      ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(410, 175); ctx.lineTo(520, 175); ctx.lineTo(520, 216); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(410, 300); ctx.lineTo(520, 300); ctx.lineTo(520, 244); ctx.stroke();
+
+      const v1X = 640, v1Y = 200;
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(410, 46); ctx.lineTo(v1X, 46); ctx.lineTo(v1X, v1Y - 16); ctx.stroke();
+      drawACSource(ctx, v1X, v1Y, 'V1 (120V 60Hz)');
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(scrX, scrY + 8); ctx.lineTo(scrX, groundY); ctx.stroke();
+
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(v1X, v1Y + 16); ctx.lineTo(v1X, groundY); ctx.stroke();
+    }
+
+    function drawOscilloscope(isTriggered) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const w = cvs.width;
+      const h = cvs.height;
+      const centerY = h / 2;
+
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = '#065f46'; ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(w, centerY); ctx.stroke();
+
+      ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x < w; x++) {
+        const y = centerY - Math.sin(x * 0.03) * 100;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let x = 0; x < w; x++) {
+        const sinVal = Math.sin(x * 0.03);
+        let y = centerY;
+
+        if (!isTriggered) {
+          y = centerY - sinVal * 100;
+        } else {
+          if (sinVal > 0) {
+            y = centerY - 2;
+          } else {
+            y = centerY - sinVal * 100;
+          }
+        }
+
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(10, 10, 280, 65);
+      ctx.strokeStyle = '#065f46';
+      ctx.strokeRect(10, 10, 280, 65);
+
+      ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('Canal A (Vermell): V1 Alimentació (120Vrms)', 20, 30);
+
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('Canal B (Blau): VAK Tiristor (' + (isTriggered ? 'Conducció +' : 'Bloqueig') + ')', 20, 50);
+      
+      ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif';
+      ctx.fillText('Escala: 100V/Divisió | Mode: Estàtic (Trigger Auto)', 20, 66);
+    }
+
+    window.onload = () => {
+      updateSim();
+    };
+  </script>
+</body>
+</html>

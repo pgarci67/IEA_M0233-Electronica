@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Filtre Pas de Banda Configurable - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-sliders text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Simulador de Filtre Pas de Banda Reconfigurable</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 Electrònica (Pablo García Mangas v3.1)</p>
+        </div>
+      </div>
+      
+      <!-- Selectors de Vista -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700 text-xs">
+        <button id="btnViewFull" onclick="setView('full')" class="px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition">
+          <i class="fa-solid fa-diagram-project mr-1"></i> Esquema del Circuit
+        </button>
+        <button id="btnViewScope" onclick="setView('scope')" class="px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-desktop mr-1"></i> Oscil·loscopi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Canvas i Mesures -->
+    <div class="lg:col-span-7 flex flex-col gap-5">
+      
+      <!-- Card principal (Canvas) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2" id="canvasTitle">
+            <i class="fa-solid fa-code-branch text-sky-400"></i> Esquema Esquemàtic del Filtre
+          </h2>
+          <span class="text-xs font-mono px-2.5 py-1 rounded-lg border bg-slate-900 text-emerald-400 border-emerald-500/30" id="bandBadge">
+            Banda: -- a --
+          </span>
+        </div>
+
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="mainCanvas" width="700" height="380" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Card: Lectura de Sondes Virtuals -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-gauge-high text-amber-400"></i> Mesures de Simulació en Temps Real
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center font-mono text-xs">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Freqüència Entrada</span>
+            <span id="valFreq" class="font-bold text-amber-400">100 kHz</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Vin (Entrada)</span>
+            <span id="valVin" class="font-bold text-sky-400">1.00 Vrms</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Vmid (Sortida U2)</span>
+            <span id="valVmid" class="font-bold text-sky-400">2.00 Vrms</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Vout (Sortida U1)</span>
+            <span id="valVout" class="font-bold text-rose-400">5.98 Vrms</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block mb-0.5">Guany Real (Av)</span>
+            <span id="valAv" class="font-bold text-emerald-400">x 5.98</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Controls i Càlculs -->
+    <div class="lg:col-span-5 flex flex-col gap-5">
+      
+      <!-- Panel de Control de Components i Freqüència -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl space-y-3">
+        <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-gears text-sky-400"></i> Paràmetres del Senyal i Components
+        </h2>
+
+        <div class="space-y-3 text-xs">
+          <!-- Freqüència entrada -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-300 font-medium">Freqüència senyal (f):</label>
+              <span id="txtFreqSlider" class="text-amber-400 font-bold">100 kHz</span>
+            </div>
+            <input type="range" id="sliderFreq" min="1" max="8.7" value="5" step="0.05" oninput="updateSim()" class="w-full accent-amber-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+          </div>
+
+          <!-- Etapa 1: Passabaixos (U2) -->
+          <div class="pt-2 border-t border-slate-700/60">
+            <span class="text-sky-400 font-semibold block mb-1">Etapa 1: Filtre Passabaixos (U2)</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-slate-400 block text-[10px]">R (Filtre)</label>
+                <select id="selR_LP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="500">500 Ω</option>
+                  <option value="1000" selected>1 kΩ</option>
+                  <option value="2200">2.2 kΩ</option>
+                  <option value="4700">4.7 kΩ</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block text-[10px]">C (Filtre)</label>
+                <select id="selC_LP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="3.9e-11">39 pF</option>
+                  <option value="7.95e-11" selected>79.5 pF</option>
+                  <option value="1.5e-10">150 pF</option>
+                  <option value="3.3e-10">330 pF</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block text-[10px]">R2 (Guany)</label>
+                <select id="selR2_LP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="0">0 Ω (x1)</option>
+                  <option value="1000" selected>1 kΩ (x2)</option>
+                  <option value="2000">2 kΩ (x3)</option>
+                  <option value="3000">3 kΩ (x4)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Etapa 2: Passalts (U1) -->
+          <div class="pt-2 border-t border-slate-700/60">
+            <span class="text-amber-400 font-semibold block mb-1">Etapa 2: Filtre Passalts (U1)</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-slate-400 block text-[10px]">R5 (Filtre)</label>
+                <select id="selR_HP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="500">500 Ω</option>
+                  <option value="1000" selected>1 kΩ</option>
+                  <option value="2200">2.2 kΩ</option>
+                  <option value="4700">4.7 kΩ</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block text-[10px]">C1 (Filtre)</label>
+                <select id="selC_HP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="1e-8">10 nF</option>
+                  <option value="3.18e-8" selected>31.8 nF</option>
+                  <option value="4.7e-8">47 nF</option>
+                  <option value="1e-7">100 nF</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block text-[10px]">R4 (Guany)</label>
+                <select id="selR4_HP" onchange="updateSim()" class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                  <option value="0">0 Ω (x1)</option>
+                  <option value="1000">1 kΩ (x2)</option>
+                  <option value="2000" selected>2 kΩ (x3)</option>
+                  <option value="3000">3 kΩ (x4)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desenvolupament Teòric i Càlculs en Temps Real -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-calculator text-emerald-400"></i> Càlculs Detallats Pas a Pas
+          </h2>
+
+          <div id="mathBox" class="font-mono text-xs space-y-2 text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed overflow-x-auto">
+            <!-- Emplenat dinàmicament per JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let currentView = 'full';
+
+    const cvs = document.getElementById('mainCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function setView(mode) {
+      currentView = mode;
+      document.getElementById('btnViewFull').className = mode === 'full' 
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+      
+      document.getElementById('btnViewScope').className = mode === 'scope'
+        ? "px-3.5 py-1.5 rounded-lg font-semibold bg-sky-600 text-white shadow transition"
+        : "px-3.5 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white transition";
+
+      document.getElementById('canvasTitle').innerHTML = mode === 'full'
+        ? `<i class="fa-solid fa-code-branch text-sky-400"></i> Esquema Esquemàtic del Filtre`
+        : `<i class="fa-solid fa-desktop text-emerald-400"></i> Oscil·loscopi Virtual (Vin vs Vout)`;
+
+      updateSim();
+    }
+
+    function getFrequencyFromSlider(val) {
+      return Math.pow(10, val);
+    }
+
+    function formatFreq(f) {
+      if (f >= 1e6) return (f / 1e6).toFixed(2) + ' MHz';
+      if (f >= 1e3) return (f / 1e3).toFixed(2) + ' kHz';
+      return f.toFixed(1) + ' Hz';
+    }
+
+    function formatRes(r) {
+      if (r >= 1000) return (r / 1000).toFixed(1) + ' k ohm';
+      return r + ' ohm';
+    }
+
+    function formatCap(c) {
+      if (c >= 1e-6) return (c * 1e6).toFixed(1) + ' uF';
+      if (c >= 1e-9) return (c * 1e9).toFixed(1) + ' nF';
+      return (c * 1e12).toFixed(1) + ' pF';
+    }
+
+    function updateSim() {
+      const sliderVal = parseFloat(document.getElementById('sliderFreq').value);
+      const freq = getFrequencyFromSlider(sliderVal);
+
+      const r_lp = parseFloat(document.getElementById('selR_LP').value);
+      const c_lp = parseFloat(document.getElementById('selC_LP').value);
+      const r2_lp = parseFloat(document.getElementById('selR2_LP').value);
+      const r1_lp = 1000;
+
+      const r_hp = parseFloat(document.getElementById('selR_HP').value);
+      const c_hp = parseFloat(document.getElementById('selC_HP').value);
+      const r4_hp = parseFloat(document.getElementById('selR4_HP').value);
+      const r3_hp = 1000;
+
+      const fc_lp = 1 / (2 * Math.PI * r_lp * c_lp);
+      const fc_hp = 1 / (2 * Math.PI * r_hp * c_hp);
+
+      const g_max_lp = 1 + (r2_lp / r1_lp);
+      const g_max_hp = 1 + (r4_hp / r3_hp);
+      const g_max_total = g_max_lp * g_max_hp;
+
+      const av1 = g_max_lp / Math.sqrt(1 + Math.pow(freq / fc_lp, 2));
+      const av2 = (g_max_hp * (freq / fc_hp)) / Math.sqrt(1 + Math.pow(freq / fc_hp, 2));
+      const avTotal = av1 * av2;
+
+      const vin = 1.0;
+      const vmid = vin * av1;
+      const vout = vin * avTotal;
+      const db = 20 * Math.log10(avTotal > 0.0001 ? avTotal : 0.0001);
+
+      document.getElementById('txtFreqSlider').innerText = formatFreq(freq);
+      document.getElementById('valFreq').innerText = formatFreq(freq);
+      document.getElementById('valVin').innerText = vin.toFixed(2) + ' Vrms';
+      document.getElementById('valVmid').innerText = (vmid < 0.1 ? (vmid*1000).toFixed(1) + ' mVrms' : vmid.toFixed(2) + ' Vrms');
+      document.getElementById('valVout').innerText = (vout < 0.1 ? (vout*1000).toFixed(1) + ' mVrms' : vout.toFixed(2) + ' Vrms');
+      document.getElementById('valAv').innerText = `x ${avTotal.toFixed(2)} (${db.toFixed(1)} dB)`;
+
+      document.getElementById('bandBadge').innerText = `Banda: ${formatFreq(fc_hp)} - ${formatFreq(fc_lp)} | G_max: x${g_max_total.toFixed(1)}`;
+
+      document.getElementById('mathBox').innerHTML = `
+        <div class="border-b border-slate-800 pb-1 mb-1">
+          <strong class="text-sky-400 block mb-0.5">1. Etapa Passabaixos (U2):</strong>
+          • f_c (passabaixos) = 1 / (2·π·R·C) = <span class="text-sky-300 font-bold">${formatFreq(fc_lp)}</span><br>
+          • Guany max (Av1) = 1 + (R2/R1) = 1 + (${r2_lp}/${r1_lp}) = <span class="text-sky-300 font-bold">x${g_max_lp.toFixed(1)}</span><br>
+          • Sortida a ${formatFreq(freq)}: Vmid = <span class="text-sky-400 font-bold">${(vmid < 0.1 ? (vmid*1000).toFixed(1)+' mVrms' : vmid.toFixed(2)+' Vrms')}</span>
+        </div>
+        <div class="border-b border-slate-800 pb-1 mb-1">
+          <strong class="text-amber-400 block mb-0.5">2. Etapa Passalts (U1):</strong>
+          • f_c (passalts) = 1 / (2·π·R5·C1) = <span class="text-amber-300 font-bold">${formatFreq(fc_hp)}</span><br>
+          • Guany max (Av2) = 1 + (R4/R3) = 1 + (${r4_hp}/${r3_hp}) = <span class="text-amber-300 font-bold">x${g_max_hp.toFixed(1)}</span><br>
+          • Sortida a ${formatFreq(freq)}: Vout = <span class="text-rose-400 font-bold">${(vout < 0.1 ? (vout*1000).toFixed(1)+' mVrms' : vout.toFixed(2)+' Vrms')}</span>
+        </div>
+        <div>
+          <strong class="text-emerald-400 block mb-0.5">3. Filtre Global en Cascada:</strong>
+          • Guany Max Teòric = Av1 · Av2 = ${g_max_lp.toFixed(1)} · ${g_max_hp.toFixed(1)} = <span class="text-emerald-300 font-bold">x${g_max_total.toFixed(1)}</span><br>
+          • Guany Real actual a ${formatFreq(freq)}: <span class="text-emerald-400 font-bold">x${avTotal.toFixed(2)} (${db.toFixed(1)} dB)</span>
+        </div>
+      `;
+
+      if (currentView === 'full') {
+        drawSchematic(freq, vmid, vout, r_lp, c_lp, r2_lp, r_hp, c_hp, r4_hp);
+      } else {
+        drawOscilloscope(vout);
+      }
+    }
+
+    // Funcions de dibuix de símbols
+    function drawGND(c, x, y) {
+      c.save(); c.strokeStyle = '#64748b'; c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(x - 8, y); c.lineTo(x + 8, y);
+      c.moveTo(x - 5, y + 3); c.lineTo(x + 5, y + 3);
+      c.moveTo(x - 2, y + 6); c.lineTo(x + 2, y + 6);
+      c.stroke(); c.restore();
+    }
+
+    function drawACSource(c, x, y, label, freqStr) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+
+      c.beginPath();
+      c.moveTo(-8, 0);
+      c.quadraticCurveTo(-4, -8, 0, 0);
+      c.quadraticCurveTo(4, 8, 8, 0);
+      c.stroke();
+
+      c.fillStyle = '#f59e0b'; c.font = 'bold 10px sans-serif';
+      c.fillText(label, -42, -5); c.font = '10px sans-serif';
+      c.fillText(freqStr, -42, 8);
+      c.restore();
+    }
+
+    function drawR(c, x, y, vert, label) {
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      if (vert) {
+        c.fillRect(x - 7, y - 14, 14, 28);
+        c.strokeRect(x - 7, y - 14, 14, 28);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x + 10, y + 3);
+      } else {
+        c.fillRect(x - 14, y - 7, 28, 14);
+        c.strokeRect(x - 14, y - 7, 28, 14);
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x - 10, y - 11);
+      }
+      c.restore();
+    }
+
+    function drawC(c, x, y, vert, label) {
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2.5;
+      if (vert) {
+        c.beginPath(); c.moveTo(x - 12, y - 4); c.lineTo(x + 12, y - 4); c.stroke();
+        c.beginPath(); c.moveTo(x - 12, y + 4); c.lineTo(x + 12, y + 4); c.stroke();
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x + 15, y + 3);
+      } else {
+        c.beginPath(); c.moveTo(x - 4, y - 12); c.lineTo(x - 4, y + 12); c.stroke();
+        c.beginPath(); c.moveTo(x + 4, y - 12); c.lineTo(x + 4, y + 12); c.stroke();
+        c.fillStyle = '#cbd5e1'; c.font = '10px sans-serif';
+        c.fillText(label, x - 12, y - 15);
+      }
+      c.restore();
+    }
+
+    function drawAO(c, x, y, name) {
+      const s = 42;
+      c.save(); c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath();
+      c.moveTo(x - s, y - s); c.lineTo(x - s, y + s); c.lineTo(x + s, y);
+      c.closePath(); c.fill(); c.stroke();
+
+      c.fillStyle = '#e2e8f0'; c.font = 'bold 12px sans-serif';
+      c.fillText('-', x - s + 6, y - s/2 + 4);
+      c.fillText('+', x - s + 5, y + s/2 + 4);
+
+      c.fillStyle = '#64748b'; c.font = '10px sans-serif';
+      c.fillText(name, x - 14, y + 3);
+      c.restore();
+    }
+
+    function drawSchematic(freq, vmid, vout, r_lp, c_lp, r2_lp, r_hp, c_hp, r4_hp) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const u2X = 210, u2Y = 190;
+      drawAO(ctx, u2X, u2Y, 'U2 (Passabaixos)');
+
+      const srcX = 35, srcY = u2Y + 40;
+      drawACSource(ctx, srcX, srcY, '1 Vrms', formatFreq(freq));
+      
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(srcX, srcY - 16); ctx.lineTo(srcX, u2Y + 21); ctx.lineTo(75, u2Y + 21); ctx.stroke();
+      ctx.strokeStyle = '#64748b'; ctx.beginPath(); ctx.moveTo(srcX, srcY + 16); ctx.lineTo(srcX, srcY + 32); ctx.stroke();
+      drawGND(ctx, srcX, srcY + 32);
+
+      drawR(ctx, 90, u2Y + 21, false, 'R ' + formatRes(r_lp));
+      ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(104, u2Y + 21); ctx.lineTo(u2X - 42, u2Y + 21); ctx.stroke();
+
+      const nodeC = 135;
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(nodeC, u2Y + 21, 3, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#cbd5e1'; ctx.beginPath(); ctx.moveTo(nodeC, u2Y + 21); ctx.lineTo(nodeC, u2Y + 45); ctx.stroke();
+      drawC(ctx, nodeC, u2Y + 52, true, 'C ' + formatCap(c_lp));
+      ctx.strokeStyle = '#64748b'; ctx.beginPath(); ctx.moveTo(nodeC, u2Y + 60); ctx.lineTo(nodeC, u2Y + 75); ctx.stroke();
+      drawGND(ctx, nodeC, u2Y + 75);
+
+      const nodeU2 = 130;
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u2X - 42, u2Y - 21); ctx.lineTo(nodeU2, u2Y - 21); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(nodeU2, u2Y - 21, 3, 0, Math.PI*2); ctx.fill();
+
+      drawR(ctx, nodeU2 - 30, u2Y - 21, false, 'R1 1k ohm');
+      ctx.strokeStyle = '#64748b'; ctx.beginPath(); ctx.moveTo(nodeU2 - 44, u2Y - 21); ctx.lineTo(nodeU2 - 60, u2Y - 21); ctx.stroke();
+      drawGND(ctx, nodeU2 - 60, u2Y - 21);
+
+      ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(nodeU2, u2Y - 21); ctx.lineTo(nodeU2, 110); ctx.lineTo(280, 110); ctx.lineTo(280, u2Y); ctx.stroke();
+      drawR(ctx, 205, 110, false, 'R2 ' + formatRes(r2_lp));
+
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(u2X + 42, u2Y); ctx.lineTo(315, u2Y); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif'; 
+      ctx.fillText('Vmid = ' + (vmid < 0.1 ? (vmid*1000).toFixed(0)+' mVrms' : vmid.toFixed(2)+' Vrms'), 245, u2Y - 8);
+
+      // --- ETAPA 2: PASSALTS (U1) ---
+      const u1X = 520, u1Y = 190;
+      drawAO(ctx, u1X, u1Y, 'U1 (Passalts)');
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(315, u2Y); ctx.lineTo(350, u2Y); ctx.lineTo(350, u1Y + 21); ctx.lineTo(365, u1Y + 21); ctx.stroke();
+      drawC(ctx, 375, u1Y + 21, false, 'C1 ' + formatCap(c_hp));
+
+      const nodeR5 = 415;
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(385, u1Y + 21); ctx.lineTo(u1X - 42, u1Y + 21); ctx.stroke();
+      ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(nodeR5, u1Y + 21, 3, 0, Math.PI*2); ctx.fill();
+
+      ctx.strokeStyle = '#cbd5e1'; ctx.beginPath(); ctx.moveTo(nodeR5, u1Y + 21); ctx.lineTo(nodeR5, u1Y + 45); ctx.stroke();
+      drawR(ctx, nodeR5, u1Y + 60, true, 'R5 ' + formatRes(r_hp));
+      ctx.strokeStyle = '#64748b'; ctx.beginPath(); ctx.moveTo(nodeR5, u1Y + 75); ctx.lineTo(nodeR5, u1Y + 90); ctx.stroke();
+      drawGND(ctx, nodeR5, u1Y + 90);
+
+      const nodeU1 = 445;
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(u1X - 42, u1Y - 21); ctx.lineTo(nodeU1, u1Y - 21); ctx.stroke();
+      ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(nodeU1, u1Y - 21, 3, 0, Math.PI*2); ctx.fill();
+
+      drawR(ctx, nodeU1 - 30, u1Y - 21, false, 'R3 1k ohm');
+      ctx.strokeStyle = '#64748b'; ctx.beginPath(); ctx.moveTo(nodeU1 - 44, u1Y - 21); ctx.lineTo(nodeU1 - 60, u1Y - 21); ctx.stroke();
+      drawGND(ctx, nodeU1 - 60, u1Y - 21);
+
+      ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(nodeU1, u1Y - 21); ctx.lineTo(nodeU1, 110); ctx.lineTo(590, 110); ctx.lineTo(590, u1Y); ctx.stroke();
+      drawR(ctx, 515, 110, false, 'R4 ' + formatRes(r4_hp));
+
+      ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(u1X + 42, u1Y); ctx.lineTo(665, u1Y); ctx.stroke();
+      ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Vout = ' + (vout < 0.1 ? (vout*1000).toFixed(0)+' mVrms' : vout.toFixed(2)+' Vrms'), 565, u1Y - 12);
+      ctx.beginPath(); ctx.arc(665, u1Y, 5, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Dibuix de l'Oscil·loscopi Estàtic (Sense Animació)
+    function drawOscilloscope(voutRms) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const w = cvs.width;
+      const h = cvs.height;
+      const centerY = h / 2;
+
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = '#065f46';
+      ctx.lineWidth = 1;
+
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(w, centerY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+
+      const vinPeak = 1.0 * Math.SQRT2;
+      const voutPeak = voutRms * Math.SQRT2;
+      const scaleY = 25;
+
+      // Senyal d'entrada Vin (Groc, fase 0 estàtica)
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x < w; x++) {
+        const y = centerY - Math.sin(x * 0.03) * (vinPeak * scaleY);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Senyal de sortida Vout (Blau, fase 0 estàtica)
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let x = 0; x < w; x++) {
+        const y = centerY - Math.sin(x * 0.03) * (voutPeak * scaleY);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Llegenda informativa
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(10, 10, 240, 65);
+      ctx.strokeStyle = '#065f46';
+      ctx.strokeRect(10, 10, 240, 65);
+
+      ctx.fillStyle = '#facc15'; ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('CH1 (Entrada Vin): 1.41 Vp (1.00 Vrms)', 20, 30);
+
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('CH2 (Sortida Vout): ' + (voutPeak < 0.1 ? (voutPeak*1000).toFixed(0)+' mVp' : voutPeak.toFixed(2)+' Vp'), 20, 50);
+      
+      ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif';
+      ctx.fillText('Escala: 1V/Divisió | Mode: Estàtic (Hold)', 20, 66);
+    }
+
+    window.onload = () => {
+      updateSim();
+    };
+  </script>
+</body>
+</html>
