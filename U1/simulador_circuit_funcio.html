@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador: Circuit a Funció Lògica - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/30">
+          <i class="fa-solid fa-network-wired text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-sky-400">Analitzador de Circuit a Funció Lògica</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+      
+      <!-- Controls visuals -->
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2 text-xs bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-700 cursor-pointer">
+          <input type="checkbox" id="chkShowFormula" checked onchange="updateSim()" class="accent-sky-500 rounded">
+          <span class="text-slate-300 font-medium">Mostrar Expressions Booleanes</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Canvas de Simulació i Circuits Intermedis -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      
+      <!-- Canvas del Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project text-sky-400"></i> Esquema del Circuit Combinacional (UF1)
+          </h2>
+          <span class="text-xs font-mono px-2.5 py-1 rounded-lg border bg-slate-900" id="outputBadge">
+            Sortida S = 1
+          </span>
+        </div>
+
+        <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex items-center justify-center">
+          <canvas id="circuitCanvas" width="760" height="420" class="max-w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Controls d'Entrades A, B, C -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders text-amber-400"></i> Estats de les Entrades Digitals (5V / 0V)
+        </h2>
+        
+        <div class="grid grid-cols-3 gap-3">
+          <button id="btnA" onclick="toggleInput('A')" class="p-3 rounded-xl border bg-slate-950 border-slate-800 text-center transition active:scale-95 shadow hover:border-slate-700">
+            <span class="text-xs text-slate-400 block mb-1">Entrada A</span>
+            <span id="txtA" class="font-mono text-base font-bold text-rose-400">0 (LOW)</span>
+          </button>
+          
+          <button id="btnB" onclick="toggleInput('B')" class="p-3 rounded-xl border bg-slate-950 border-slate-800 text-center transition active:scale-95 shadow hover:border-slate-700">
+            <span class="text-xs text-slate-400 block mb-1">Entrada B</span>
+            <span id="txtB" class="font-mono text-base font-bold text-rose-400">0 (LOW)</span>
+          </button>
+
+          <button id="btnC" onclick="toggleInput('C')" class="p-3 rounded-xl border bg-slate-950 border-slate-800 text-center transition active:scale-95 shadow hover:border-slate-700">
+            <span class="text-xs text-slate-400 block mb-1">Entrada C</span>
+            <span id="txtC" class="font-mono text-base font-bold text-rose-400">0 (LOW)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Resolució i Pregunta Didàctica -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Desglossament Nodal Pas a Pas -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-route text-emerald-400"></i> Resolució Nodal Pas a Pas
+        </h2>
+
+        <div class="space-y-2.5 font-mono text-xs">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-slate-400 block text-[10px]">U3 (NOT A):</span>
+              <span class="text-sky-300 font-bold" style="text-decoration: overline;">A</span>
+            </div>
+            <span id="valU3" class="text-emerald-400 font-bold text-sm">1</span>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-slate-400 block text-[10px]">U7 (NOT C):</span>
+              <span class="text-sky-300 font-bold" style="text-decoration: overline;">C</span>
+            </div>
+            <span id="valU7" class="text-emerald-400 font-bold text-sm">1</span>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-slate-400 block text-[10px]">U1 (AND2):</span>
+              <span class="text-sky-300 font-bold"><span style="text-decoration: overline;">A</span> · B</span>
+            </div>
+            <span id="valU1" class="text-rose-400 font-bold text-sm">0</span>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-slate-400 block text-[10px]">U2 (XOR2):</span>
+              <span class="text-sky-300 font-bold">B ⊕ C</span>
+            </div>
+            <span id="valU2" class="text-rose-400 font-bold text-sm">0</span>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-slate-400 block text-[10px]">U4 (NAND2):</span>
+              <span class="text-sky-300 font-bold" style="text-decoration: overline;">A · <span style="text-decoration: overline;">C</span></span>
+            </div>
+            <span id="valU4" class="text-emerald-400 font-bold text-sm">1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Funció Booleana Final -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-square-root-variable text-amber-400"></i> Funció Lògica Resultant
+        </h2>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block mb-1">Equació del Circuit (Porta U6 OR3):</span>
+          <span class="text-sm font-bold font-mono text-amber-300 block leading-relaxed">
+            S = <span style="text-decoration: overline;">A</span>·B + (B ⊕ C) + <span style="text-decoration: overline;">A·<span style="text-decoration: overline;">C</span></span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Pregunta Didàctica Interactiva -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-circle-question text-sky-400"></i> Pregunta Didàctica
+          </h2>
+
+          <p class="text-xs text-slate-300 mb-3 leading-relaxed">
+            Quin serà l'estat de la sortida <strong>S</strong> si configurem les entrades a <strong>A = 1, B = 0, C = 0</strong>?
+          </p>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+            <button onclick="checkQuiz(0)" class="py-2 bg-slate-950 hover:bg-slate-700 border border-slate-700 rounded-xl transition">
+              S = 0 (LOW)
+            </button>
+            <button onclick="checkQuiz(1)" class="py-2 bg-slate-950 hover:bg-slate-700 border border-slate-700 rounded-xl transition">
+              S = 1 (HIGH)
+            </button>
+          </div>
+        </div>
+
+        <div id="quizFeedback" class="mt-3 p-2.5 rounded-xl text-xs font-mono hidden"></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let inA = 0;
+    let inB = 0;
+    let inC = 0;
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function toggleInput(varName) {
+      if (varName === 'A') inA = inA === 0 ? 1 : 0;
+      if (varName === 'B') inB = inB === 0 ? 1 : 0;
+      if (varName === 'C') inC = inC === 0 ? 1 : 0;
+      updateSim();
+    }
+
+    function checkQuiz(userAnswer) {
+      // Per A=1, B=0, C=0: notA=0, notC=1 => U1=0, U2=0, U4=NAND(1,1)=0 => S=0
+      const correctAnswer = 0;
+      const fb = document.getElementById('quizFeedback');
+      fb.classList.remove('hidden');
+
+      if (userAnswer === correctAnswer) {
+        fb.className = "mt-3 p-2.5 rounded-xl text-xs font-semibold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300";
+        fb.innerHTML = "Correcte! Per A=1 i C=0, la porta U4 (NAND) rep (1, 1) produint un 0. Com que U1=0 i U2=0, la sortida S és 0.";
+      } else {
+        fb.className = "mt-3 p-2.5 rounded-xl text-xs font-semibold bg-rose-500/20 border border-rose-500/50 text-rose-300";
+        fb.innerHTML = "Incorrecte. Prova de posar A=1, B=0, C=0 al simulador per veure l'evolució pas a pas fins a U6.";
+      }
+    }
+
+    function updateSim() {
+      const notA = inA === 0 ? 1 : 0;
+      const notC = inC === 0 ? 1 : 0;
+
+      const u1_and = (notA === 1 && inB === 1) ? 1 : 0;
+      const u2_xor = (inB !== inC) ? 1 : 0;
+      const u4_nand = !(inA === 1 && notC === 1) ? 1 : 0;
+
+      const outS = (u1_and === 1 || u2_xor === 1 || u4_nand === 1) ? 1 : 0;
+
+      document.getElementById('txtA').innerText = inA === 1 ? '1 (HIGH)' : '0 (LOW)';
+      document.getElementById('txtA').className = inA === 1 ? 'font-mono text-base font-bold text-emerald-400' : 'font-mono text-base font-bold text-rose-400';
+
+      document.getElementById('txtB').innerText = inB === 1 ? '1 (HIGH)' : '0 (LOW)';
+      document.getElementById('txtB').className = inB === 1 ? 'font-mono text-base font-bold text-emerald-400' : 'font-mono text-base font-bold text-rose-400';
+
+      document.getElementById('txtC').innerText = inC === 1 ? '1 (HIGH)' : '0 (LOW)';
+      document.getElementById('txtC').className = inC === 1 ? 'font-mono text-base font-bold text-emerald-400' : 'font-mono text-base font-bold text-rose-400';
+
+      document.getElementById('valU3').innerText = notA;
+      document.getElementById('valU3').className = notA === 1 ? 'text-emerald-400 font-bold text-sm' : 'text-rose-400 font-bold text-sm';
+
+      document.getElementById('valU7').innerText = notC;
+      document.getElementById('valU7').className = notC === 1 ? 'text-emerald-400 font-bold text-sm' : 'text-rose-400 font-bold text-sm';
+
+      document.getElementById('valU1').innerText = u1_and;
+      document.getElementById('valU1').className = u1_and === 1 ? 'text-emerald-400 font-bold text-sm' : 'text-rose-400 font-bold text-sm';
+
+      document.getElementById('valU2').innerText = u2_xor;
+      document.getElementById('valU2').className = u2_xor === 1 ? 'text-emerald-400 font-bold text-sm' : 'text-rose-400 font-bold text-sm';
+
+      document.getElementById('valU4').innerText = u4_nand;
+      document.getElementById('valU4').className = u4_nand === 1 ? 'text-emerald-400 font-bold text-sm' : 'text-rose-400 font-bold text-sm';
+
+      const badge = document.getElementById('outputBadge');
+      if (outS === 1) {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-500/20 border-emerald-500/50 text-emerald-300";
+        badge.innerText = "Sortida S = 1 (ACTIVA)";
+      } else {
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-lg border bg-rose-500/20 border-rose-500/50 text-rose-300";
+        badge.innerText = "Sortida S = 0 (INACTIVA)";
+      }
+
+      drawCircuit(notA, notC, u1_and, u2_xor, u4_nand, outS);
+    }
+
+    function drawNOT(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.moveTo(-20, -18); c.lineTo(10, 0); c.lineTo(-20, 18); c.closePath(); c.fill(); c.stroke();
+      c.beginPath(); c.arc(15, 0, 5, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = '#38bdf8'; c.font = 'bold 9px sans-serif'; c.fillText(label, -14, 25);
+      c.restore();
+    }
+
+    function drawAND(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.moveTo(-25, -25); c.lineTo(0, -25);
+      c.arc(0, 0, 25, -Math.PI / 2, Math.PI / 2); c.lineTo(-25, 25); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#38bdf8'; c.font = 'bold 9px sans-serif'; c.fillText(label, -12, 32);
+      c.restore();
+    }
+
+    function drawXOR(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.moveTo(-31, -25); c.quadraticCurveTo(-16, 0, -31, 25); c.stroke();
+      c.beginPath(); c.moveTo(-25, -25); c.quadraticCurveTo(-10, 0, -25, 25);
+      c.quadraticCurveTo(10, 25, 25, 0); c.quadraticCurveTo(10, -25, -25, -25); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#38bdf8'; c.font = 'bold 9px sans-serif'; c.fillText(label, -14, 32);
+      c.restore();
+    }
+
+    function drawNAND(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.moveTo(-25, -25); c.lineTo(0, -25);
+      c.arc(0, 0, 25, -Math.PI / 2, Math.PI / 2); c.lineTo(-25, 25); c.closePath(); c.fill(); c.stroke();
+      c.beginPath(); c.arc(30, 0, 5, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = '#38bdf8'; c.font = 'bold 9px sans-serif'; c.fillText(label, -16, 32);
+      c.restore();
+    }
+
+    function drawOR3(c, x, y, label) {
+      c.save(); c.translate(x, y);
+      c.strokeStyle = '#cbd5e1'; c.lineWidth = 2; c.fillStyle = '#0f172a';
+      c.beginPath(); c.moveTo(-25, -30); c.quadraticCurveTo(-10, 0, -25, 30);
+      c.quadraticCurveTo(15, 30, 30, 0); c.quadraticCurveTo(15, -30, -25, -30); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#38bdf8'; c.font = 'bold 9px sans-serif'; c.fillText(label, -12, 38);
+      c.restore();
+    }
+
+    // Funció auxiliar per dibuixar amb text sobrelínia (negat)
+    function drawOverlineText(c, text, x, y, col) {
+      c.save();
+      c.fillStyle = col; c.font = '11px monospace';
+      c.fillText(text, x, y);
+      const metrics = c.measureText(text);
+      c.strokeStyle = col; c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(x, y - 10);
+      c.lineTo(x + metrics.width, y - 10);
+      c.stroke();
+      c.restore();
+    }
+
+    function drawCircuit(notA, notC, u1_and, u2_xor, u4_nand, outS) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const showFormulas = document.getElementById('chkShowFormula').checked;
+
+      const cOn = '#10b981';
+      const cOff = '#f43f5e';
+
+      const yA = 70, yB = 210, yC = 350;
+
+      // --- 1. RUTES ORTOGONALS D'ENTRADA (ANGLES RECTES) ---
+      const colA = inA === 1 ? cOn : cOff;
+      const colB = inB === 1 ? cOn : cOff;
+      const colC = inC === 1 ? cOn : cOff;
+
+      // Bus Principal A
+      ctx.strokeStyle = colA; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(40, yA); ctx.lineTo(160, yA); ctx.stroke();
+      ctx.fillStyle = colA; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('A (' + inA + ')', 10, yA + 4);
+
+      // Inversor U3 (NOT A)
+      drawNOT(ctx, 180, yA, 'U3 (NOT)');
+      const colNotA = notA === 1 ? cOn : cOff;
+      ctx.strokeStyle = colNotA; ctx.lineWidth = 2.5;
+      // Ortogonal cap a U1 entrada 1 (yA - 12 = 58)
+      ctx.beginPath();
+      ctx.moveTo(195, yA);
+      ctx.lineTo(240, yA);
+      ctx.lineTo(240, yA - 12);
+      ctx.lineTo(320, yA - 12);
+      ctx.stroke();
+
+      // Bus Principal B
+      ctx.strokeStyle = colB; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(40, yB); ctx.lineTo(120, yB); ctx.stroke();
+      ctx.fillStyle = colB; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('B (' + inB + ')', 10, yB + 4);
+
+      // Bifurcació B -> U1 entrada 2 (yA + 12 = 82)
+      ctx.beginPath();
+      ctx.moveTo(120, yB);
+      ctx.lineTo(120, yA + 12);
+      ctx.lineTo(320, yA + 12);
+      ctx.stroke();
+
+      // Bus B -> U2 entrada 1 (yB - 10 = 200)
+      ctx.beginPath();
+      ctx.moveTo(120, yB);
+      ctx.lineTo(260, yB);
+      ctx.lineTo(260, yB - 10);
+      ctx.lineTo(326, yB - 10);
+      ctx.stroke();
+
+      // Bifurcació A -> U4 NAND2 entrada 1 (yC - 12 = 338)
+      ctx.strokeStyle = colA;
+      ctx.beginPath();
+      ctx.moveTo(90, yA);
+      ctx.lineTo(90, 338);
+      ctx.lineTo(325, 338);
+      ctx.stroke();
+
+      // Bus Principal C
+      ctx.strokeStyle = colC; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(40, yC); ctx.lineTo(160, yC); ctx.stroke();
+      ctx.fillStyle = colC; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('C (' + inC + ')', 10, yC + 4);
+
+      // Bifurcació C -> U2 XOR2 entrada 2 (yB + 10 = 220)
+      ctx.beginPath();
+      ctx.moveTo(140, yC);
+      ctx.lineTo(140, yB + 10);
+      ctx.lineTo(326, yB + 10);
+      ctx.stroke();
+
+      // Inversor U7 (NOT C)
+      drawNOT(ctx, 180, yC, 'U7 (NOT)');
+      const colNotC = notC === 1 ? cOn : cOff;
+      ctx.strokeStyle = colNotC; ctx.lineWidth = 2.5;
+      // Ortogonal cap a U4 entrada 2 (yC + 12 = 362)
+      ctx.beginPath();
+      ctx.moveTo(195, yC);
+      ctx.lineTo(240, yC);
+      ctx.lineTo(240, yC + 12);
+      ctx.lineTo(325, yC + 12);
+      ctx.stroke();
+
+      // --- 2. PORTES LÒGIQUES PRIMÀRIES ---
+      drawAND(ctx, 345, yA, 'U1 (AND2)');
+      drawXOR(ctx, 351, yB, 'U2 (XOR2)');
+      drawNAND(ctx, 350, yC, 'U4 (NAND2)');
+
+      // --- 3. CONNEXIONS ORTOGONALS A U6 (OR3) ---
+      const colU1 = u1_and === 1 ? cOn : cOff;
+      ctx.strokeStyle = colU1; ctx.lineWidth = 2.5;
+      // U1 (yA) -> U6 entrada 1 (yB - 20 = 190)
+      ctx.beginPath();
+      ctx.moveTo(370, yA);
+      ctx.lineTo(460, yA);
+      ctx.lineTo(460, yB - 20);
+      ctx.lineTo(545, yB - 20);
+      ctx.stroke();
+
+      const colU2 = u2_xor === 1 ? cOn : cOff;
+      ctx.strokeStyle = colU2; ctx.lineWidth = 2.5;
+      // U2 (yB) -> U6 entrada 2 (yB = 210)
+      ctx.beginPath();
+      ctx.moveTo(376, yB);
+      ctx.lineTo(545, yB);
+      ctx.stroke();
+
+      const colU4 = u4_nand === 1 ? cOn : cOff;
+      ctx.strokeStyle = colU4; ctx.lineWidth = 2.5;
+      // U4 (yC) -> U6 entrada 3 (yB + 20 = 230)
+      ctx.beginPath();
+      ctx.moveTo(385, yC);
+      ctx.lineTo(480, yC);
+      ctx.lineTo(480, yB + 20);
+      ctx.lineTo(545, yB + 20);
+      ctx.stroke();
+
+      // --- 4. PORTA FINAL U6 (OR3) I SORTIDA S ---
+      drawOR3(ctx, 570, yB, 'U6 (OR3)');
+
+      const colS = outS === 1 ? cOn : cOff;
+      ctx.strokeStyle = colS; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(600, yB); ctx.lineTo(670, yB); ctx.stroke();
+
+      // Bombeta S
+      ctx.save();
+      if (outS === 1) {
+        const grad = ctx.createRadialGradient(690, yB, 4, 690, yB, 28);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.9)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(690, yB, 28, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#10b981'; ctx.strokeStyle = '#059669';
+      } else {
+        ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#64748b';
+      }
+      ctx.beginPath(); ctx.arc(690, yB, 16, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = outS === 1 ? '#ffffff' : '#94a3b8'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('S', 686, yB + 4);
+      ctx.restore();
+
+      // --- 5. ETICHETES BOOLEANES AMB OVERLINE (NATIVE LINE ABOVE) ---
+      if (showFormulas) {
+        drawOverlineText(ctx, 'A', 210, yA - 8, '#cbd5e1');
+        drawOverlineText(ctx, 'C', 210, yC + 18, '#cbd5e1');
+
+        // U1 sortida: A̅·B
+        drawOverlineText(ctx, 'A', 380, yA - 8, '#cbd5e1');
+        ctx.fillStyle = '#cbd5e1'; ctx.font = '11px monospace';
+        ctx.fillText('·B', 388, yA - 8);
+
+        // U2 sortida: B⊕C
+        ctx.fillText('B⊕C', 385, yB - 10);
+
+        // U4 sortida: (A·C̅) negada completament
+        const startX = 395, startY = yC + 18;
+        ctx.fillText('A·', startX, startY);
+        drawOverlineText(ctx, 'C', startX + 14, startY, '#cbd5e1');
+        // Línia negació global a sobre
+        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(startX, startY - 14); ctx.lineTo(startX + 24, startY - 14); ctx.stroke();
+
+        // Sortida global U6
+        ctx.fillText('S = A̅·B + (B⊕C) + A·C̅', 500, yB - 35);
+        // Línia per sobre de A
+        ctx.beginPath(); ctx.moveTo(528, yB - 45); ctx.lineTo(535, yB - 45); ctx.stroke();
+        // Línia per sobre de C final
+        ctx.beginPath(); ctx.moveTo(626, yB - 45); ctx.lineTo(633, yB - 45); ctx.stroke();
+        // Línia negació global final
+        ctx.beginPath(); ctx.moveTo(612, yB - 49); ctx.lineTo(633, yB - 49); ctx.stroke();
+      }
+    }
+
+    window.onload = () => {
+      updateSim();
+    };
+  </script>
+</body>
+</html>
