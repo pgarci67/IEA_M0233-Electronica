@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador: Circuit amb Dominància de Zeros - Mòdul 0233</title>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .header {
+      background-color: #1e293b;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #334155;
+    }
+    .header h1 { margin: 0; color: #38bdf8; font-size: 20px; }
+    .header p { margin: 5px 0 0 0; color: #94a3b8; font-size: 12px; }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .main-panel { flex: 2; min-width: 520px; }
+    .side-panel { flex: 1; min-width: 280px; }
+    .card {
+      background-color: #1e293b;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      margin-bottom: 20px;
+    }
+    canvas {
+      background-color: #020617;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      display: block;
+      margin: 0 auto;
+    }
+    .controls { display: flex; gap: 10px; margin-top: 15px; }
+    .btn-input {
+      flex: 1;
+      padding: 10px;
+      background-color: #020617;
+      border: 1px solid #334155;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-input:hover { border-color: #38bdf8; }
+    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+    th { background-color: #020617; color: #38bdf8; padding: 8px; border-bottom: 2px solid #334155; }
+    td { padding: 6px; border-bottom: 1px solid #334155; }
+    .active-row { background-color: rgba(56, 189, 248, 0.2); font-weight: bold; }
+    .badge-on { background-color: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+    .badge-off { background-color: #f43f5e; color: white; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>EE10 / Mòdul 0233 - Simulador de Circuit amb Dominància de Zeros</h1>
+    <p>Autor: Pablo García Mangas | Línies 100% Ortogonals (90°) | 6 Zeros / 2 Uns</p>
+  </div>
+
+  <div class="container">
+    <div class="main-panel">
+      <div class="card">
+        <h3>Esquema Lògic Combinacional (UF1)</h3>
+        <canvas id="circuitCanvas" width="780" height="420"></canvas>
+        <div class="controls">
+          <button class="btn-input" onclick="toggle('A')">Entrada A: <span id="lblA">0</span></button>
+          <button class="btn-input" onclick="toggle('B')">Entrada B: <span id="lblB">0</span></button>
+          <button class="btn-input" onclick="toggle('C')">Entrada C: <span id="lblC">0</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="card">
+        <h3>Taula de Veritat (Dominància 0)</h3>
+        <table>
+          <thead>
+            <tr><th>A</th><th>B</th><th>C</th><th>Sortida S</th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let inA = 0, inB = 0, inC = 0;
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    const combos = [
+      {a:0, b:0, c:0}, {a:0, b:0, c:1},
+      {a:0, b:1, c:0}, {a:0, b:1, c:1},
+      {a:1, b:0, c:0}, {a:1, b:0, c:1},
+      {a:1, b:1, c:0}, {a:1, b:1, c:1}
+    ];
+
+    function evalLogic(a, b, c) {
+      const notA = a === 0 ? 1 : 0;
+      const notC = c === 0 ? 1 : 0;
+
+      // U1: AND2 entre NOT(A) i B
+      const u1 = (notA === 1 && b === 1) ? 1 : 0;
+      // U2: XOR2 entre B i C
+      const u2 = (b !== c) ? 1 : 0;
+      // U4: AND2 entre A i NOT(C)
+      const u4 = (a === 1 && notC === 1) ? 1 : 0;
+
+      // U6: NOR3 final -> Produeix un 1 NOMS quan U1=0, U2=0 i U4=0 (Majoritàriament 0s)
+      const s = !(u1 === 1 || u2 === 1 || u4 === 1) ? 1 : 0;
+
+      return { notA, notC, u1, u2, u4, s };
+    }
+
+    function toggle(v) {
+      if(v==='A') inA = inA === 0 ? 1 : 0;
+      if(v==='B') inB = inB === 0 ? 1 : 0;
+      if(v==='C') inC = inC === 0 ? 1 : 0;
+      draw();
+    }
+
+    function setCombo(a,b,c) {
+      inA=a; inB=b; inC=c;
+      draw();
+    }
+
+    // Funcions de dibuix de les portes lògiques
+    function drawNOT(x, y, txt) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(10, 0); ctx.lineTo(-15, 15); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(15, 0, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = '10px Arial'; ctx.fillText(txt, -15, 25);
+      ctx.restore();
+    }
+
+    function drawAND(x, y, txt) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.moveTo(-20, -20); ctx.lineTo(0, -20);
+      ctx.arc(0, 0, 20, -Math.PI / 2, Math.PI / 2); ctx.lineTo(-20, 20); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = '10px Arial'; ctx.fillText(txt, -15, 30);
+      ctx.restore();
+    }
+
+    function drawXOR(x, y, txt) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.moveTo(-26, -20); ctx.quadraticCurveTo(-14, 0, -26, 20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-20, -20); ctx.quadraticCurveTo(-8, 0, -20, 20);
+      ctx.quadraticCurveTo(10, 20, 20, 0); ctx.quadraticCurveTo(10, -20, -20, -20); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = '10px Arial'; ctx.fillText(txt, -15, 30);
+      ctx.restore();
+    }
+
+    function drawNOR3(x, y, txt) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.moveTo(-20, -25); ctx.quadraticCurveTo(-8, 0, -20, 25);
+      ctx.quadraticCurveTo(12, 25, 25, 0); ctx.quadraticCurveTo(12, -25, -20, -25); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(29, 0, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.font = '10px Arial'; ctx.fillText(txt, -10, 35);
+      ctx.restore();
+    }
+
+    function drawOverlineText(text, x, y, col) {
+      ctx.save();
+      ctx.fillStyle = col; ctx.font = '11px monospace';
+      ctx.fillText(text, x, y);
+      const metrics = ctx.measureText(text);
+      ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 10);
+      ctx.lineTo(x + metrics.width, y - 10);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw() {
+      const res = evalLogic(inA, inB, inC);
+      
+      document.getElementById('lblA').innerText = inA;
+      document.getElementById('lblB').innerText = inB;
+      document.getElementById('lblC').innerText = inC;
+
+      // Taula de Veritat
+      let html = '';
+      combos.forEach(cb => {
+        const r = evalLogic(cb.a, cb.b, cb.c);
+        const active = (cb.a === inA && cb.b === inB && cb.c === inC) ? 'class="active-row"' : '';
+        const badge = r.s === 1 ? '<span class="badge-on">1</span>' : '<span class="badge-off">0</span>';
+        html += `<tr ${active} onclick="setCombo(${cb.a},${cb.b},${cb.c})" style="cursor:pointer">
+          <td>${cb.a}</td><td>${cb.b}</td><td>${cb.c}</td><td>${badge}</td>
+        </tr>`;
+      });
+      document.getElementById('tableBody').innerHTML = html;
+
+      // Dibuix de l'esquema al Canvas
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const colOn = '#10b981', colOff = '#f43f5e';
+      const yA = 60, yB = 180, yC = 300;
+
+      const cA = inA === 1 ? colOn : colOff;
+      const cB = inB === 1 ? colOn : colOff;
+      const cC = inC === 1 ? colOn : colOff;
+
+      // 1. RUTES D'ENTRADA (ESTRICTAMENT ORTOGONALS AT 90°)
+      // Entrada A -> NOT U3
+      ctx.strokeStyle = cA; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(40, yA); ctx.lineTo(175, yA); ctx.stroke();
+      ctx.fillStyle = cA; ctx.font = 'bold 12px Arial'; ctx.fillText('A=' + inA, 10, yA + 4);
+
+      drawNOT(190, yA, 'U3 (NOT)');
+      const cNotA = res.notA === 1 ? colOn : colOff;
+      ctx.strokeStyle = cNotA; ctx.lineWidth = 2;
+      // Ortogonal: U3 sortida -> U1 AND entrada 1
+      ctx.beginPath(); ctx.moveTo(209, yA); ctx.lineTo(260, yA); ctx.lineTo(260, yA - 10); ctx.lineTo(340, yA - 10); ctx.stroke();
+
+      // Entrada B
+      ctx.strokeStyle = cB; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(40, yB); ctx.lineTo(130, yB); ctx.stroke();
+      ctx.fillStyle = cB; ctx.font = 'bold 12px Arial'; ctx.fillText('B=' + inB, 10, yB + 4);
+
+      // Ortogonal: B -> U1 AND entrada 2
+      ctx.beginPath(); ctx.moveTo(130, yB); ctx.lineTo(130, yA + 10); ctx.lineTo(340, yA + 10); ctx.stroke();
+
+      // Ortogonal: B -> U2 XOR entrada 1
+      ctx.beginPath(); ctx.moveTo(130, yB); ctx.lineTo(280, yB); ctx.lineTo(280, yB - 8); ctx.lineTo(334, yB - 8); ctx.stroke();
+
+      // Ortogonal: A -> U4 AND entrada 1
+      ctx.strokeStyle = cA;
+      ctx.beginPath(); ctx.moveTo(100, yA); ctx.lineTo(100, yC - 10); ctx.lineTo(340, yC - 10); ctx.stroke();
+
+      // Entrada C
+      ctx.strokeStyle = cC; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(40, yC); ctx.lineTo(175, yC); ctx.stroke();
+      ctx.fillStyle = cC; ctx.font = 'bold 12px Arial'; ctx.fillText('C=' + inC, 10, yC + 4);
+
+      // Ortogonal: C -> U2 XOR entrada 2
+      ctx.beginPath(); ctx.moveTo(150, yC); ctx.lineTo(150, yB + 8); ctx.lineTo(334, yB + 8); ctx.stroke();
+
+      drawNOT(190, yC, 'U7 (NOT)');
+      const cNotC = res.notC === 1 ? colOn : colOff;
+      ctx.strokeStyle = cNotC; ctx.lineWidth = 2;
+      // Ortogonal: U7 sortida -> U4 AND entrada 2
+      ctx.beginPath(); ctx.moveTo(209, yC); ctx.lineTo(260, yC); ctx.lineTo(260, yC + 10); ctx.lineTo(340, yC + 10); ctx.stroke();
+
+      // 2. PORTES INTERMÈDIES
+      drawAND(360, yA, 'U1 (AND2)');
+      drawXOR(360, yB, 'U2 (XOR2)');
+      drawAND(360, yC, 'U4 (AND2)');
+
+      // 3. RUTES ORTOGONALS CAP A U6 (NOR3)
+      ctx.strokeStyle = res.u1 === 1 ? colOn : colOff;
+      ctx.beginPath(); ctx.moveTo(380, yA); ctx.lineTo(480, yA); ctx.lineTo(480, yB - 15); ctx.lineTo(550, yB - 15); ctx.stroke();
+
+      ctx.strokeStyle = res.u2 === 1 ? colOn : colOff;
+      ctx.beginPath(); ctx.moveTo(380, yB); ctx.lineTo(550, yB); ctx.stroke();
+
+      ctx.strokeStyle = res.u4 === 1 ? colOn : colOff;
+      ctx.beginPath(); ctx.moveTo(380, yC); ctx.lineTo(480, yC); ctx.lineTo(480, yB + 15); ctx.lineTo(550, yB + 15); ctx.stroke();
+
+      // 4. PORTA FINAL U6 (NOR3)
+      drawNOR3(570, yB, 'U6 (NOR3)');
+
+      // 5. SORTIDA FINAL S
+      const cS = res.s === 1 ? colOn : colOff;
+      ctx.strokeStyle = cS; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(603, yB); ctx.lineTo(670, yB); ctx.stroke();
+
+      // Indicador de la Bombeta S
+      ctx.fillStyle = res.s === 1 ? colOn : '#1e293b';
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(685, yB, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px Arial';
+      ctx.fillText('S', 681, yB + 4);
+
+      // Etiquetes booleanes amb sobrelínia
+      drawOverlineText('A', 220, yA - 8, '#cbd5e1');
+      drawOverlineText('C', 220, yC + 18, '#cbd5e1');
+    }
+
+    window.onload = draw;
+  </script>
+</body>
+</html>
