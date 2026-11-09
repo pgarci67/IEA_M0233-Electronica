@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Multiplexors (MUX 2:1, 4:1 i 74LS151) - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-700 p-2.5 rounded-xl shadow-lg shadow-blue-700/30">
+          <i class="fa-solid fa-network-wired text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-blue-400">Simulador de Multiplexors Digitals</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mode MUX -->
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-300 font-medium font-mono">Model MUX:</span>
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+          <button id="btnMux21" onclick="setMuxModel('21')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white">MUX 2:1</button>
+          <button id="btnMux41" onclick="setMuxModel('41')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">MUX 4:1</button>
+          <button id="btnMux81" onclick="setMuxModel('81')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">CI 74LS151 (8:1)</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Entrades de Dades i Línies de Selecció -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Panel MUX 2:1 -->
+      <div id="panelMux21Controls" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center gap-2">
+          <i class="fa-solid fa-sliders"></i> Entrades MUX 2:1
+        </h2>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1 font-medium">Entrades de Dades:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn21_A" onclick="toggleData21('A')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+              <span>Entrada 0 (A)</span>
+              <span id="val21_A" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+            </button>
+            <button id="btn21_B" onclick="toggleData21('B')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+              <span>Entrada 1 (B)</span>
+              <span id="val21_B" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1 font-medium">Línia de Selecció (Sel):</label>
+          <button id="btn21_Sel" onclick="toggleSel21()" class="w-full p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Selecció (C)</span>
+            <span id="val21_Sel" class="px-2.5 py-1 rounded bg-slate-800 text-amber-400 font-bold">0 $\rightarrow$ Selecciona Entrada 0 (A)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel MUX 4:1 -->
+      <div id="panelMux41Controls" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl hidden flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center gap-2">
+          <i class="fa-solid fa-sliders"></i> Entrades MUX 4:1
+        </h2>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Entrades de Dades (D0 - D3):</label>
+          <div class="grid grid-cols-2 gap-2" id="gridData41">
+            <!-- JS -->
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Línies de Selecció (B = MSB, A = LSB):</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnSel41_B" onclick="toggleSel41('B')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+              <span>B (MSB)</span>
+              <span id="valSel41_B" class="text-amber-400 font-bold">0</span>
+            </button>
+            <button id="btnSel41_A" onclick="toggleSel41('A')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+              <span>A (LSB)</span>
+              <span id="valSel41_A" class="text-amber-400 font-bold">0</span>
+            </button>
+          </div>
+          <div class="mt-2 text-center text-xs font-mono text-amber-300 bg-slate-950 p-2 rounded-xl border border-slate-800" id="lblSelectedChannel41">
+            Línia seleccionada: D0 (BA = 00)
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel MUX 8:1 (74LS151) -->
+      <div id="panelMux81Controls" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl hidden flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-microchip"></i> Entrades CI 74LS151 (8:1)</span>
+          <button id="btnStrobe" onclick="toggleStrobe()" class="px-2.5 py-1 rounded-lg border text-xs font-bold transition bg-emerald-950/60 border-emerald-500 text-emerald-300">
+            STROBE (/G) = 0 (Actiu)
+          </button>
+        </h2>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Entrades de Dades (D0 - D7):</label>
+          <div class="grid grid-cols-4 gap-2" id="gridData81">
+            <!-- JS -->
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Línies de Selecció (C = MSB, A = LSB):</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button id="btnSel_C" onclick="toggleSel81('C')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+              <span>C (MSB)</span>
+              <span id="valSel_C" class="text-amber-400 font-bold">0</span>
+            </button>
+            <button id="btnSel_B" onclick="toggleSel81('B')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+              <span>B</span>
+              <span id="valSel_B" class="text-amber-400 font-bold">0</span>
+            </button>
+            <button id="btnSel_A" onclick="toggleSel81('A')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+              <span>A (LSB)</span>
+              <span id="valSel_A" class="text-amber-400 font-bold">0</span>
+            </button>
+          </div>
+          <div class="mt-2 text-center text-xs font-mono text-amber-300 bg-slate-950 p-2 rounded-xl border border-slate-800" id="lblSelectedChannel">
+            Línia seleccionada: D0 (CBA = 000)
+          </div>
+        </div>
+      </div>
+
+      <!-- Estat de la Sortida -->
+      <div id="outputStatusBox" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="outBulb" class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-lg text-slate-500">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider" id="outStatusTitle">Sortida Y = 0</div>
+            <div class="text-[11px] text-slate-400" id="outStatusDetail">Línia seleccionada en nivell baix</div>
+          </div>
+        </div>
+        <div class="flex flex-col items-end gap-1 font-mono text-xs">
+          <span id="badgeY" class="px-3 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 font-bold">Y = 0</span>
+          <span id="badgeW" class="px-3 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 font-bold">W = 1</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Circuit i Taula de Veritat -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Esquema del Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-blue-400"></i> Esquema del Multiplexor</span>
+          <span class="text-xs font-mono text-amber-400 font-bold" id="txtDiagramTitle">MUX 2:1 bàsic</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center">
+          <canvas id="circuitCanvas" width="650" height="260" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Taula de Veritat Dinàmica -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-table text-sky-400"></i> Taula de Veritat Operativa</span>
+          <span class="text-xs font-mono text-amber-400" id="lblTableModeInfo">Mode MUX 2:1</span>
+        </h2>
+
+        <div class="overflow-y-auto max-h-[190px] rounded-xl border border-slate-700" id="tableContainer">
+          <table class="w-full text-center text-xs font-mono">
+            <thead id="truthHead" class="bg-slate-950 text-blue-400 uppercase sticky top-0 border-b border-slate-700 font-bold">
+              <!-- JS -->
+            </thead>
+            <tbody id="truthBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let muxModel = '21'; // '21', '41', o '81'
+
+    // Estat MUX 2:1
+    let data21 = { A: 0, B: 0 };
+    let sel21 = 0;
+
+    // Estat MUX 4:1
+    let data41 = [0, 0, 0, 0];
+    let sel41 = { B: 0, A: 0 };
+
+    // Estat MUX 8:1 (74LS151)
+    let data81 = [0, 0, 0, 0, 0, 0, 0, 0];
+    let sel81 = { C: 0, B: 0, A: 0 };
+    let strobe = 0; // 0 = Habilitat (L), 1 = Inhabilitat (H)
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function setMuxModel(model) {
+      muxModel = model;
+      document.getElementById('btnMux21').className = model === '21' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      document.getElementById('btnMux41').className = model === '41' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      document.getElementById('btnMux81').className = model === '81' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+
+      document.getElementById('panelMux21Controls').classList.add('hidden');
+      document.getElementById('panelMux41Controls').classList.add('hidden');
+      document.getElementById('panelMux81Controls').classList.add('hidden');
+
+      if (model === '21') {
+        document.getElementById('panelMux21Controls').classList.remove('hidden');
+        document.getElementById('txtDiagramTitle').innerText = "MUX 2:1 bàsic (S = /C·A + C·B)";
+        document.getElementById('lblTableModeInfo').innerText = "Mode MUX 2:1";
+      } else if (model === '41') {
+        document.getElementById('panelMux41Controls').classList.remove('hidden');
+        document.getElementById('txtDiagramTitle').innerText = "MUX 4:1 bàsic (4 entrades dades D0-D3, 2 línies selecció B,A)";
+        document.getElementById('lblTableModeInfo').innerText = "Mode MUX 4:1";
+      } else {
+        document.getElementById('panelMux81Controls').classList.remove('hidden');
+        document.getElementById('txtDiagramTitle').innerText = "CI 74LS151 (Multiplexor 8:1 amb /STROBE)";
+        document.getElementById('lblTableModeInfo').innerText = "Mode 74LS151 Datasheet";
+      }
+      updateUI();
+    }
+
+    // --- CONTROLS MUX 2:1 ---
+    function toggleData21(input) {
+      data21[input] = data21[input] === 0 ? 1 : 0;
+      updateUI();
+    }
+    function toggleSel21() {
+      sel21 = sel21 === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    // --- CONTROLS MUX 4:1 ---
+    function toggleData41(idx) {
+      data41[idx] = data41[idx] === 0 ? 1 : 0;
+      updateUI();
+    }
+    function toggleSel41(bit) {
+      sel41[bit] = sel41[bit] === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function renderGrid41() {
+      const grid = document.getElementById('gridData41');
+      const selectedChannel = sel41.B * 2 + sel41.A;
+      let html = '';
+
+      for (let i = 0; i < 4; i++) {
+        const val = data41[i];
+        const isSel = i === selectedChannel;
+        const borderCls = isSel ? 'border-amber-400 bg-amber-950/40 text-amber-300 font-bold' : 'border-slate-700 bg-slate-950 text-slate-400';
+
+        html += `<button onclick="toggleData41(${i})" class="p-2.5 rounded-xl border ${borderCls} font-mono text-xs flex justify-between items-center transition">
+          <span>Entrada D${i}</span>
+          <span class="px-2 py-0.5 rounded bg-slate-900">${val}</span>
+        </button>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    // --- CONTROLS MUX 8:1 ---
+    function toggleData81(idx) {
+      data81[idx] = data81[idx] === 0 ? 1 : 0;
+      updateUI();
+    }
+    function toggleSel81(bit) {
+      sel81[bit] = sel81[bit] === 0 ? 1 : 0;
+      updateUI();
+    }
+    function toggleStrobe() {
+      strobe = strobe === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function renderGrid81() {
+      const grid = document.getElementById('gridData81');
+      const selectedChannel = sel81.C * 4 + sel81.B * 2 + sel81.A;
+      let html = '';
+
+      for (let i = 0; i < 8; i++) {
+        const val = data81[i];
+        const isSel = i === selectedChannel;
+        const borderCls = isSel ? 'border-amber-400 bg-amber-950/40 text-amber-300 font-bold' : 'border-slate-700 bg-slate-950 text-slate-400';
+
+        html += `<button onclick="toggleData81(${i})" class="p-2 rounded-xl border ${borderCls} font-mono text-xs flex justify-between items-center transition">
+          <span>D${i}</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-900">${val}</span>
+        </button>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    function updateUI() {
+      let outY = 0;
+      let outW = 1;
+
+      if (muxModel === '21') {
+        ['A', 'B'].forEach(k => {
+          const v = data21[k];
+          document.getElementById('val21_' + k).innerText = v;
+          document.getElementById('btn21_' + k).className = v === 1
+            ? 'p-3 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs font-bold flex justify-between items-center shadow-lg shadow-blue-500/10'
+            : 'p-3 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold flex justify-between items-center';
+        });
+
+        document.getElementById('val21_Sel').innerText = sel21 === 0 ? "0 → Selecciona Entrada 0 (A)" : "1 → Selecciona Entrada 1 (B)";
+        document.getElementById('btn21_Sel').className = sel21 === 1
+          ? 'w-full p-3 rounded-xl border bg-amber-600/20 text-amber-300 border-amber-500 font-mono text-xs font-bold flex justify-between items-center'
+          : 'w-full p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center';
+
+        outY = sel21 === 0 ? data21.A : data21.B;
+        outW = outY === 1 ? 0 : 1;
+
+      } else if (muxModel === '41') {
+        renderGrid41();
+
+        ['B', 'A'].forEach(k => {
+          const v = sel41[k];
+          document.getElementById('valSel41_' + k).innerText = v;
+        });
+
+        const selectedIdx41 = sel41.B * 2 + sel41.A;
+        document.getElementById('lblSelectedChannel41').innerText = `Línia seleccionada: D${selectedIdx41} (BA = ${sel41.B}${sel41.A})`;
+
+        outY = data41[selectedIdx41];
+        outW = outY === 1 ? 0 : 1;
+
+      } else {
+        renderGrid81();
+
+        ['C', 'B', 'A'].forEach(k => {
+          const v = sel81[k];
+          document.getElementById('valSel_' + k).innerText = v;
+        });
+
+        const selectedIdx = sel81.C * 4 + sel81.B * 2 + sel81.A;
+        document.getElementById('lblSelectedChannel').innerText = `Línia seleccionada: D${selectedIdx} (CBA = ${sel81.C}${sel81.B}${sel81.A})`;
+
+        const strobeBtn = document.getElementById('btnStrobe');
+        if (strobe === 0) {
+          strobeBtn.className = 'px-2.5 py-1 rounded-lg border text-xs font-bold transition bg-emerald-950/60 border-emerald-500 text-emerald-300';
+          strobeBtn.innerText = 'STROBE (/G) = 0 (Actiu)';
+          outY = data81[selectedIdx];
+          outW = outY === 1 ? 0 : 1;
+        } else {
+          strobeBtn.className = 'px-2.5 py-1 rounded-lg border text-xs font-bold transition bg-rose-950/60 border-rose-500 text-rose-300';
+          strobeBtn.innerText = 'STROBE (/G) = 1 (Deshabilitat)';
+          outY = 0;
+          outW = 1;
+        }
+      }
+
+      // Caixa d'Estat de la Sortida
+      const box = document.getElementById('outputStatusBox');
+      const bulb = document.getElementById('outBulb');
+      const title = document.getElementById('outStatusTitle');
+      const detail = document.getElementById('outStatusDetail');
+      const bY = document.getElementById('badgeY');
+      const bW = document.getElementById('badgeW');
+
+      bY.innerText = `Y = ${outY}`;
+      bW.innerText = `W = ${outW}`;
+
+      if (outY === 1) {
+        box.className = 'bg-slate-800 rounded-2xl p-4 border border-rose-500/50 shadow-xl flex items-center justify-between animate-pulse';
+        bulb.className = 'w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-rose-600/40';
+        title.innerText = 'Sortida Y = 1 (Nivell Alt)';
+        detail.innerText = muxModel === '21' 
+          ? `Entrada seleccionada (${sel21 === 0 ? 'A' : 'B'}) val 1` 
+          : (muxModel === '41' ? `Entrada seleccionada D${sel41.B * 2 + sel41.A} val 1` : `Entrada seleccionada D${sel81.C * 4 + sel81.B * 2 + sel81.A} val 1`);
+        bY.className = 'px-3 py-0.5 rounded-lg bg-rose-600 text-white font-bold shadow';
+        bW.className = 'px-3 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 font-bold';
+      } else {
+        box.className = 'bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-between';
+        bulb.className = 'w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 text-slate-500 flex items-center justify-center font-bold text-lg';
+        title.innerText = 'Sortida Y = 0 (Nivell Baix)';
+        detail.innerText = (muxModel === '81' && strobe === 1) ? 'Xip deshabilitat per STROBE=1' : 'Línia seleccionada val 0';
+        bY.className = 'px-3 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 font-bold';
+        bW.className = 'px-3 py-0.5 rounded-lg bg-emerald-600 text-white font-bold shadow';
+      }
+
+      renderTruthTable(outY);
+      drawCircuit(outY, outW);
+    }
+
+    function renderTruthTable(currentY) {
+      const thead = document.getElementById('truthHead');
+      const tbody = document.getElementById('truthBody');
+
+      if (muxModel === '21') {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800">A (In0)</th>
+          <th class="py-1.5 px-2 border-r border-slate-800">B (In1)</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">C (Sel)</th>
+          <th class="py-1.5 px-2 text-emerald-400">Sortida (S)</th>
+        </tr>`;
+
+        const rows21 = [
+          { a:0, b:0, c:0 }, { a:0, b:0, c:1 },
+          { a:0, b:1, c:0 }, { a:0, b:1, c:1 },
+          { a:1, b:0, c:0 }, { a:1, b:0, c:1 },
+          { a:1, b:1, c:0 }, { a:1, b:1, c:1 }
+        ];
+
+        let html = '';
+        rows21.forEach((r, idx) => {
+          const isCurrent = r.a === data21.A && r.b === data21.B && r.c === sel21;
+          const sVal = r.c === 0 ? r.a : r.b;
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+
+          html += `<tr id="tr-row-${idx}" class="border-b border-slate-800/60 transition-all ${rowBg}">
+            <td class="py-1 px-2 border-r border-slate-800">${r.a}</td>
+            <td class="py-1 px-2 border-r border-slate-800">${r.b}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-amber-400">${r.c}</td>
+            <td class="py-1 px-2 ${sVal === 1 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${sVal}</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+
+      } else if (muxModel === '41') {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">B (MSB)</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">A (LSB)</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-indigo-400">Entrada Seleccionada</th>
+          <th class="py-1.5 px-2 text-emerald-400">Sortida (Y)</th>
+        </tr>`;
+
+        const selectedIdx41 = sel41.B * 2 + sel41.A;
+
+        let html = '';
+        for (let i = 0; i < 4; i++) {
+          const bBit = (i & 2) >> 1;
+          const aBit = i & 1;
+          const isCurrent = i === selectedIdx41;
+          const valD = data41[i];
+
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+
+          html += `<tr class="border-b border-slate-800/60 transition-all ${rowBg}">
+            <td class="py-1 px-2 border-r border-slate-800 font-bold text-amber-400">${bBit}</td>
+            <td class="py-1 px-2 border-r border-slate-800 font-bold text-amber-400">${aBit}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-slate-300">D${i} (Valor = ${valD})</td>
+            <td class="py-1 px-2 ${valD === 1 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${valD}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+
+      } else {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">C</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">B</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-amber-400">A</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-rose-400">Strobe (/S)</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">Y</th>
+          <th class="py-1.5 px-2 text-sky-400">W (/Y)</th>
+        </tr>`;
+
+        const selectedIdx = sel81.C * 4 + sel81.B * 2 + sel81.A;
+
+        let html = `<tr class="border-b border-slate-800/60 ${strobe === 1 ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'text-slate-400'}">
+          <td class="py-1 px-2 border-r border-slate-800">X</td>
+          <td class="py-1 px-2 border-r border-slate-800">X</td>
+          <td class="py-1 px-2 border-r border-slate-800">X</td>
+          <td class="py-1 px-2 border-r border-slate-800 text-rose-400 font-bold">H (1)</td>
+          <td class="py-1 px-2 border-r border-slate-800 text-slate-500">L (0)</td>
+          <td class="py-1 px-2 text-slate-300 font-bold">H (1)</td>
+        </tr>`;
+
+        for (let i = 0; i < 8; i++) {
+          const cBit = (i & 4) >> 2;
+          const bBit = (i & 2) >> 1;
+          const aBit = i & 1;
+          const isCurrent = strobe === 0 && i === selectedIdx;
+          const valD = data81[i];
+          const valW = valD === 1 ? 0 : 1;
+
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+
+          html += `<tr class="border-b border-slate-800/60 transition-all ${rowBg}">
+            <td class="py-1 px-2 border-r border-slate-800">${cBit}</td>
+            <td class="py-1 px-2 border-r border-slate-800">${bBit}</td>
+            <td class="py-1 px-2 border-r border-slate-800">${aBit}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-emerald-400 font-bold">L (0)</td>
+            <td class="py-1 px-2 border-r border-slate-800 ${valD === 1 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">D${i} (${valD})</td>
+            <td class="py-1 px-2 ${valW === 1 ? 'text-sky-400 font-bold' : 'text-slate-500'}">/D${i} (${valW})</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      }
+    }
+
+    // --- DIBUIX DE DIAGRAMES (LÍNIES MANHATTAN H/V A 90°) ---
+    function drawCircuit(outY, outW) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      if (muxModel === '21') {
+        drawMux21Canvas(outY);
+      } else if (muxModel === '41') {
+        drawMux41Canvas(outY);
+      } else {
+        drawMux74151Canvas(outY, outW);
+      }
+    }
+
+    function drawMux21Canvas(outY) {
+      const A = data21.A;
+      const B = data21.B;
+      const Sel = sel21;
+
+      drawWireHV([{x:40, y:60}, {x:240, y:60}], A === 1 ? '#10b981' : '#64748b', 'Entrada 0 (A) = ' + A);
+      drawWireHV([{x:40, y:140}, {x:240, y:140}], B === 1 ? '#10b981' : '#64748b', 'Entrada 1 (B) = ' + B);
+      drawWireHV([{x:300, y:230}, {x:300, y:180}], Sel === 1 ? '#fbbf24' : '#64748b', 'Selecció (C) = ' + Sel);
+
+      // Trapezi MUX 2:1
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(240, 30);
+      ctx.lineTo(360, 70);
+      ctx.lineTo(360, 130);
+      ctx.lineTo(240, 170);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+      ctx.fillText('0', 250, 65);
+      ctx.fillText('1', 250, 145);
+      ctx.textAlign = 'center';
+      ctx.fillText('Sel', 300, 165);
+      ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#38bdf8';
+      ctx.fillText('MUX 2-1', 290, 105);
+
+      drawWireHV([{x:360, y:100}, {x:560, y:100}], outY === 1 ? '#f43f5e' : '#64748b', 'S = ' + outY, true);
+    }
+
+    function drawMux41Canvas(outY) {
+      const selectedIdx41 = sel41.B * 2 + sel41.A;
+
+      // Trapezi MUX 4:1
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(240, 20);
+      ctx.lineTo(380, 60);
+      ctx.lineTo(380, 180);
+      ctx.lineTo(240, 220);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#38bdf8'; ctx.textAlign = 'center';
+      ctx.fillText('MUX 4-1', 305, 120);
+
+      // 4 Entrades de dades (D0 - D3)
+      for (let i = 0; i < 4; i++) {
+        const y = 45 + i * 50;
+        const isSel = i === selectedIdx41;
+        const val = data41[i];
+        const color = isSel ? '#fbbf24' : (val === 1 ? '#10b981' : '#64748b');
+
+        drawWireHV([{x:60, y:y}, {x:240, y:y}], color, `D${i} = ${val}`);
+        ctx.fillStyle = isSel ? '#fbbf24' : '#cbd5e1'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'left';
+        ctx.fillText(`${i}`, 248, y + 4);
+      }
+
+      // Línies de Selecció B i A
+      const selColorB = sel41.B === 1 ? '#fbbf24' : '#64748b';
+      const selColorA = sel41.A === 1 ? '#fbbf24' : '#64748b';
+
+      drawWireHV([{x:290, y:250}, {x:290, y:204}], selColorB, 'B (MSB)');
+      drawWireHV([{x:330, y:250}, {x:330, y:193}], selColorA, 'A (LSB)');
+
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('Sel', 310, 185);
+
+      // Sortida Y
+      drawWireHV([{x:380, y:120}, {x:580, y:120}], outY === 1 ? '#f43f5e' : '#64748b', 'Y = ' + outY, true);
+    }
+
+    function drawMux74151Canvas(outY, outW) {
+      const selectedIdx = sel81.C * 4 + sel81.B * 2 + sel81.A;
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(220, 20, 200, 220);
+      ctx.fillRect(220, 20, 200, 220);
+
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('74LS151N', 320, 45);
+
+      for (let i = 0; i < 8; i++) {
+        const y = 55 + i * 20;
+        const isSel = strobe === 0 && i === selectedIdx;
+        const val = data81[i];
+        const color = isSel ? '#fbbf24' : (val === 1 ? '#10b981' : '#475569');
+
+        drawWireHV([{x:60, y:y}, {x:220, y:y}], color, `D${i}=${val}`);
+        ctx.fillStyle = isSel ? '#fbbf24' : '#94a3b8'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left';
+        ctx.fillText(`D${i}`, 225, y + 3);
+      }
+
+      const selColorC = sel81.C === 1 ? '#fbbf24' : '#64748b';
+      const selColorB = sel81.B === 1 ? '#fbbf24' : '#64748b';
+      const selColorA = sel81.A === 1 ? '#fbbf24' : '#64748b';
+
+      drawWireHV([{x:260, y:255}, {x:260, y:240}], selColorC, 'C');
+      drawWireHV([{x:300, y:255}, {x:300, y:240}], selColorB, 'B');
+      drawWireHV([{x:340, y:255}, {x:340, y:240}], selColorA, 'A');
+
+      const strobeColor = strobe === 0 ? '#10b981' : '#f43f5e';
+      drawWireHV([{x:380, y:255}, {x:380, y:240}], strobeColor, '/STROBE');
+
+      drawWireHV([{x:420, y:90}, {x:580, y:90}], outY === 1 ? '#f43f5e' : '#64748b', 'Y = ' + outY, true);
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'right';
+      ctx.fillText('Y (5)', 415, 93);
+
+      drawWireHV([{x:420, y:170}, {x:580, y:170}], outW === 1 ? '#38bdf8' : '#64748b', 'W (/Y) = ' + outW, true);
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'right';
+      ctx.fillText('W (6)', 415, 173);
+    }
+
+    function drawWireHV(points, color, label = '', isOutput = false) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isOutput ? 3.5 : 2;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px monospace';
+        if (points[0].y > 230) {
+          ctx.textAlign = 'center';
+          ctx.fillText(label, points[0].x, points[0].y + 12);
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillText(label, points[0].x - 6, points[0].y + 3);
+        }
+      }
+    }
+
+    window.onload = () => {
+      updateUI();
+    };
+  </script>
+</body>
+</html>
