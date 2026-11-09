@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Descodificador BCD a 7 Segments (7447N) - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+    
+    /* Display de 7 segments en SVG */
+    .seg-off { fill: #1e293b; stroke: #0f172a; stroke-width: 1; }
+    .seg-on { fill: #ef4444; filter: drop-shadow(0px 0px 6px #ef4444); stroke: #dc2626; stroke-width: 1; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-rose-600 p-2.5 rounded-xl shadow-lg shadow-rose-600/30">
+          <i class="fa-solid fa-calculator text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-rose-400">Simulador de Descodificador BCD a 7 Segments (7447N)</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Badge Ànode Comú -->
+      <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-700">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-xs font-mono font-bold text-slate-300">Display: Ànode Comú (+5V)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Entrades BCD i Controls Auxiliars -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Entrades BCD (D, C, B, A) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-3">
+        <h2 class="text-sm font-semibold text-rose-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Entrades BCD (4 Bits)</span>
+          <span id="lblDecVal" class="text-xs font-mono font-bold text-amber-300">Decimal: 0</span>
+        </h2>
+
+        <div class="grid grid-cols-4 gap-2">
+          <button id="btnD" onclick="toggleBit('D')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+            <span>D (MSB)</span>
+            <span id="valD" class="text-base text-slate-200">0</span>
+          </button>
+          <button id="btnC" onclick="toggleBit('C')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+            <span>C</span>
+            <span id="valC" class="text-base text-slate-200">0</span>
+          </button>
+          <button id="btnB" onclick="toggleBit('B')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+            <span>B</span>
+            <span id="valB" class="text-base text-slate-200">0</span>
+          </button>
+          <button id="btnA" onclick="toggleBit('A')" class="p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex flex-col items-center">
+            <span>A (LSB)</span>
+            <span id="valA" class="text-base text-slate-200">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Entrades de Control / Programació (LT, RBI, BI/RBO) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-3">
+        <h2 class="text-sm font-semibold text-amber-400 border-b border-slate-700 pb-2 flex items-center gap-2">
+          <i class="fa-solid fa-gears"></i> Pins de Control Auxiliars (Active-Low)
+        </h2>
+
+        <div class="grid grid-cols-3 gap-2">
+          <button id="btnLT" onclick="toggleCtrl('LT')" class="p-2 rounded-xl border bg-emerald-950/60 border-emerald-500 text-emerald-300 font-mono text-[11px] font-bold flex flex-col items-center">
+            <span>/LT (Pin 3)</span>
+            <span id="valLT" class="text-xs">1 (Normal)</span>
+          </button>
+          <button id="btnRBI" onclick="toggleCtrl('RBI')" class="p-2 rounded-xl border bg-emerald-950/60 border-emerald-500 text-emerald-300 font-mono text-[11px] font-bold flex flex-col items-center">
+            <span>/RBI (Pin 5)</span>
+            <span id="valRBI" class="text-xs">1 (Normal)</span>
+          </button>
+          <button id="btnBI" onclick="toggleCtrl('BI')" class="p-2 rounded-xl border bg-emerald-950/60 border-emerald-500 text-emerald-300 font-mono text-[11px] font-bold flex flex-col items-center">
+            <span>/BI (Pin 4)</span>
+            <span id="valBI" class="text-xs">1 (Normal)</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 italic">
+          * /LT = 0 activa tots els segments (Lamp Test). /BI = 0 apaga el display.
+        </p>
+      </div>
+
+      <!-- Visualitzador de 7 Segments i Estat de Sortides -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-around">
+        
+        <!-- SVG 7-Segment Display -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col items-center">
+          <span class="text-[10px] font-mono text-slate-500 mb-1">DISPLAY LED</span>
+          <svg width="90" height="130" viewBox="0 0 90 130">
+            <!-- Segment a -->
+            <polygon id="seg-a" points="18,12 24,6 66,6 72,12 64,18 26,18" class="seg-off"/>
+            <!-- Segment b -->
+            <polygon id="seg-b" points="74,14 80,20 80,60 74,66 68,58 68,22" class="seg-off"/>
+            <!-- Segment c -->
+            <polygon id="seg-c" points="74,68 80,74 80,114 74,120 68,112 68,76" class="seg-off"/>
+            <!-- Segment d -->
+            <polygon id="seg-d" points="18,122 26,116 64,116 72,122 66,128 24,128" class="seg-off"/>
+            <!-- Segment e -->
+            <polygon id="seg-e" points="16,68 22,76 22,112 16,120 10,114 10,74" class="seg-off"/>
+            <!-- Segment f -->
+            <polygon id="seg-f" points="16,14 22,22 22,58 16,66 10,60 10,20" class="seg-off"/>
+            <!-- Segment g -->
+            <polygon id="seg-g" points="18,67 24,61 66,61 72,67 66,73 24,73" class="seg-off"/>
+          </svg>
+        </div>
+
+        <!-- Estat de les Sortides Negades (a-g) -->
+        <div class="flex flex-col gap-1 font-mono text-xs">
+          <span class="text-slate-400 font-bold mb-1 border-b border-slate-700 pb-1">Sortides CI 7447N:</span>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+            <span id="out-a" class="text-slate-500">/OA = 1</span>
+            <span id="out-e" class="text-slate-500">/OE = 1</span>
+            <span id="out-b" class="text-slate-500">/OB = 1</span>
+            <span id="out-f" class="text-slate-500">/OF = 1</span>
+            <span id="out-c" class="text-slate-500">/OC = 1</span>
+            <span id="out-g" class="text-slate-500">/OG = 1</span>
+            <span id="out-d" class="text-slate-500">/OD = 1</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Circuit i Taula de Veritat -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Esquema del Circuit (Canvas) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-rose-400"></i> Esquema de Simulació (7447N + Bus de 7 Segments)</span>
+          <span class="text-xs font-mono text-amber-400 font-bold">Resistències limitadores = 180 Ω</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center">
+          <canvas id="circuitCanvas" width="650" height="260" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Taula de Veritat BCD a 7 Segments -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-table text-sky-400"></i> Taula de Veritat del 7447N</span>
+          <span class="text-xs font-mono text-emerald-400 font-bold">Actiu a nivell baix (0 = Encès)</span>
+        </h2>
+
+        <div class="overflow-y-auto max-h-[190px] rounded-xl border border-slate-700">
+          <table class="w-full text-center text-xs font-mono">
+            <thead class="bg-slate-950 text-rose-400 uppercase sticky top-0 border-b border-slate-700 font-bold">
+              <tr>
+                <th class="py-1.5 px-2 border-r border-slate-800">Dígit</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">D</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">C</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">B</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">A</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/a</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/b</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/c</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/d</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/e</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">/f</th>
+                <th class="py-1.5 px-2">/g</th>
+              </tr>
+            </thead>
+            <tbody id="truthBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let bcd = { D: 0, C: 0, B: 0, A: 0 };
+    let ctrl = { LT: 1, RBI: 1, BI: 1 }; // Active-low: 1 = Inactiu, 0 = Actiu
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    // Patrons de segments del 7447 per a 0-15 (0 = encès, 1 = apagat)
+    const bcdTable = [
+      { dec: 0, d:0, c:0, b:0, a:0, segs: { a:0, b:0, c:0, d:0, e:0, f:0, g:1 } },
+      { dec: 1, d:0, c:0, b:0, a:1, segs: { a:1, b:0, c:0, d:1, e:1, f:1, g:1 } },
+      { dec: 2, d:0, c:0, b:1, a:0, segs: { a:0, b:0, c:1, d:0, e:0, f:1, g:0 } },
+      { dec: 3, d:0, c:0, b:1, a:1, segs: { a:0, b:0, c:0, d:0, e:1, f:1, g:0 } },
+      { dec: 4, d:0, c:1, b:0, a:0, segs: { a:1, b:0, c:0, d:1, e:1, f:0, g:0 } },
+      { dec: 5, d:0, c:1, b:0, a:1, segs: { a:0, b:1, c:0, d:0, e:1, f:0, g:0 } },
+      { dec: 6, d:0, c:1, b:1, a:0, segs: { a:1, b:1, c:0, d:0, e:0, f:0, g:0 } },
+      { dec: 7, d:0, c:1, b:1, a:1, segs: { a:0, b:0, c:0, d:1, e:1, f:1, g:1 } },
+      { dec: 8, d:1, c:0, b:0, a:0, segs: { a:0, b:0, c:0, d:0, e:0, f:0, g:0 } },
+      { dec: 9, d:1, c:0, b:0, a:1, segs: { a:0, b:0, c:0, d:0, e:1, f:0, g:0 } },
+      { dec: 10, d:1, c:0, b:1, a:0, segs: { a:1, b:1, c:1, d:0, e:0, f:1, g:0 } }, // Símbols especials 7447
+      { dec: 11, d:1, c:0, b:1, a:1, segs: { a:1, b:1, c:0, d:0, e:1, f:1, g:0 } },
+      { dec: 12, d:1, c:1, b:0, a:0, segs: { a:1, b:0, c:1, d:1, e:1, f:0, g:0 } },
+      { dec: 13, d:1, c:1, b:0, a:1, segs: { a:0, b:1, c:1, d:0, e:1, f:0, g:0 } },
+      { dec: 14, d:1, c:1, b:1, a:0, segs: { a:1, b:1, c:1, d:0, e:0, f:0, g:0 } },
+      { dec: 15, d:1, c:1, b:1, a:1, segs: { a:1, b:1, c:1, d:1, e:1, f:1, g:1 } }
+    ];
+
+    function toggleBit(bit) {
+      bcd[bit] = bcd[bit] === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function toggleCtrl(pin) {
+      ctrl[pin] = ctrl[pin] === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function computeOutputs() {
+      // Prioritat de control del 7447N
+      if (ctrl.BI === 0) {
+        // Blanking total: tots apagats (1)
+        return { a:1, b:1, c:1, d:1, e:1, f:1, g:1 };
+      }
+      if (ctrl.LT === 0) {
+        // Lamp Test: tots encesos (0)
+        return { a:0, b:0, c:0, d:0, e:0, f:0, g:0 };
+      }
+
+      const dec = bcd.D * 8 + bcd.C * 4 + bcd.B * 2 + bcd.A;
+
+      if (ctrl.RBI === 0 && dec === 0) {
+        // Supressió de zeros
+        return { a:1, b:1, c:1, d:1, e:1, f:1, g:1 };
+      }
+
+      const match = bcdTable.find(r => r.dec === dec);
+      return match ? { ...match.segs } : { a:1, b:1, c:1, d:1, e:1, f:1, g:1 };
+    }
+
+    function updateUI() {
+      // Actualitzar botons BCD
+      ['D', 'C', 'B', 'A'].forEach(b => {
+        const val = bcd[b];
+        document.getElementById('val' + b).innerText = val;
+        document.getElementById('btn' + b).className = val === 1
+          ? 'p-2.5 rounded-xl border bg-rose-600/20 text-rose-300 border-rose-500 font-mono text-xs font-bold flex flex-col items-center shadow-lg shadow-rose-500/10'
+          : 'p-2.5 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold flex flex-col items-center';
+      });
+
+      // Actualitzar botons de Control
+      ['LT', 'RBI', 'BI'].forEach(p => {
+        const val = ctrl[p];
+        document.getElementById('val' + p).innerText = val === 0 ? '0 (Actiu)' : '1 (Normal)';
+        document.getElementById('btn' + p).className = val === 0
+          ? 'p-2 rounded-xl border bg-amber-600/20 text-amber-300 border-amber-500 font-mono text-[11px] font-bold flex flex-col items-center'
+          : 'p-2 rounded-xl border bg-emerald-950/60 border-emerald-500 text-emerald-300 font-mono text-[11px] font-bold flex flex-col items-center';
+      });
+
+      const decVal = bcd.D * 8 + bcd.C * 4 + bcd.B * 2 + bcd.A;
+      document.getElementById('lblDecVal').innerText = `Decimal: ${decVal}`;
+
+      const segState = computeOutputs();
+
+      // Actualitzar SVG Display 7 Segments
+      ['a', 'b', 'c', 'd', 'e', 'f', 'g'].forEach(s => {
+        const el = document.getElementById('seg-' + s);
+        if (segState[s] === 0) {
+          el.className.baseVal = 'seg-on';
+        } else {
+          el.className.baseVal = 'seg-off';
+        }
+
+        // Actualitzar llista de text sortides
+        const outTxt = document.getElementById('out-' + s);
+        outTxt.innerText = `/O${s.toUpperCase()} = ${segState[s]}`;
+        outTxt.className = segState[s] === 0 ? 'text-emerald-400 font-bold' : 'text-slate-500';
+      });
+
+      renderTruthTable(decVal);
+      drawCircuit(segState);
+    }
+
+    function renderTruthTable(currentDec) {
+      const tbody = document.getElementById('truthBody');
+      let html = '';
+
+      bcdTable.forEach(row => {
+        const isCurrent = row.dec === currentDec && ctrl.LT === 1 && ctrl.BI === 1;
+        const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+
+        html += `<tr class="border-b border-slate-800/60 transition-all ${rowBg}">
+          <td class="py-1 px-2 border-r border-slate-800 font-bold">${row.dec}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.d}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.c}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.b}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.a}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.a === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.a}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.b === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.b}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.c === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.c}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.d === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.d}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.e === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.e}</td>
+          <td class="py-1 px-2 border-r border-slate-800 ${row.segs.f === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.f}</td>
+          <td class="py-1 px-2 ${row.segs.g === 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${row.segs.g}</td>
+        </tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // --- DIBUIX DE DIAGRAMES (LÍNIES MANHATTAN H/V A 90°) ---
+    function drawCircuit(segState) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      // CI 7447N (Centre)
+      ctx.strokeStyle = '#f43f5e';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(200, 20, 180, 220);
+      ctx.fillRect(200, 20, 180, 220);
+
+      ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('7447N', 290, 45);
+
+      // Entrades BCD (Esquerra dalt)
+      const inputsBCD = [
+        { label: 'A (LSB)', val: bcd.A, y: 70 },
+        { label: 'B', val: bcd.B, y: 95 },
+        { label: 'C', val: bcd.C, y: 120 },
+        { label: 'D (MSB)', val: bcd.D, y: 145 }
+      ];
+
+      inputsBCD.forEach(inp => {
+        const color = inp.val === 1 ? '#10b981' : '#64748b';
+        drawWireHV([{x:40, y:inp.y}, {x:200, y:inp.y}], color, inp.label + ' = ' + inp.val);
+      });
+
+      // Entrades de Control (Esquerra baix)
+      const inputsCtrl = [
+        { label: '/LT', val: ctrl.LT, y: 180 },
+        { label: '/RBI', val: ctrl.RBI, y: 200 },
+        { label: '/BI', val: ctrl.BI, y: 220 }
+      ];
+
+      inputsCtrl.forEach(inp => {
+        const color = inp.val === 0 ? '#fbbf24' : '#64748b';
+        drawWireHV([{x:40, y:inp.y}, {x:200, y:inp.y}], color, inp.label);
+      });
+
+      // Resistències limitadores RPACK7 i Bus cap al Display
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeRect(430, 55, 45, 160);
+      ctx.fillRect(430, 55, 45, 160);
+
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('RPACK7', 452, 130);
+      ctx.fillText('180Ω', 452, 142);
+
+      const segments = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+      segments.forEach((s, idx) => {
+        const y = 65 + idx * 21;
+        const val = segState[s]; // 0 = encès
+        const color = val === 0 ? '#ef4444' : '#475569';
+
+        // Cable 7447 -> RPACK7
+        drawWireHV([{x:380, y:y}, {x:430, y:y}], color);
+        ctx.fillStyle = val === 0 ? '#ef4444' : '#94a3b8'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'right';
+        ctx.fillText(`/O${s.toUpperCase()}`, 375, y + 3);
+
+        // Cable RPACK7 -> Display
+        drawWireHV([{x:475, y:y}, {x:570, y:y}], color);
+      });
+
+      // Display 7 Segments (Dreta)
+      ctx.strokeStyle = '#94a3b8';
+      ctx.fillStyle = '#020617';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(570, 45, 60, 180);
+      ctx.fillRect(570, 45, 60, 180);
+
+      ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('DISPLAY', 600, 65);
+      ctx.fillText('CA (+5V)', 600, 80);
+
+      // Línia d'alimentació VCC +5V a l'ànode comú
+      drawWireHV([{x:600, y:15}, {x:600, y:45}], '#ef4444', 'VCC 5V', true);
+    }
+
+    function drawWireHV(points, color, label = '', isOutput = false) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isOutput ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(label, points[0].x - 6, points[0].y + 3);
+      }
+    }
+
+    window.onload = () => {
+      updateUI();
+    };
+  </script>
+</body>
+</html>
