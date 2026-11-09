@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Detector de Nombres Primers (0 a 7) - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+    .kcell-active {
+      outline: 3px solid #fbbf24 !important;
+      outline-offset: -3px;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+      z-index: 10;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-600/30">
+          <i class="fa-solid fa-microchip text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-indigo-400">Simulador: Detector de Nombres Primers (3 Vars)</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mode de Circuit -->
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-300 font-medium">Esquema Circuit:</span>
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+          <button id="btnSimplificat" onclick="setCircuitMode('simplificat')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white">Estàndard (AND/OR)</button>
+          <button id="btnNand" onclick="setCircuitMode('nand')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">Només NAND</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Selector de Nombres i Diagrama de Karnaugh -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Controls d'Entrada (A, B, C) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-indigo-400 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-sliders"></i> Entrades Binàries (A, B, C)
+        </h2>
+
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <button id="btnA" onclick="toggleBit('A')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold transition flex flex-col items-center gap-1">
+            <span>Bit A (MSB)</span>
+            <span id="valA" class="text-base text-slate-200">0</span>
+          </button>
+          <button id="btnB" onclick="toggleBit('B')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold transition flex flex-col items-center gap-1">
+            <span>Bit B</span>
+            <span id="valB" class="text-base text-slate-200">0</span>
+          </button>
+          <button id="btnC" onclick="toggleBit('C')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold transition flex flex-col items-center gap-1">
+            <span>Bit C (LSB)</span>
+            <span id="valC" class="text-base text-slate-200">0</span>
+          </button>
+        </div>
+
+        <!-- Indicador del Nombre Decimal i Resultat -->
+        <div id="resultStatusBox" class="p-3.5 rounded-xl border flex items-center justify-between transition-all">
+          <div class="flex items-center gap-3">
+            <div id="decBadge" class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-mono font-bold text-lg text-slate-400">
+              0
+            </div>
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider" id="resultStatusTitle">Nombre No Primer</div>
+              <div class="text-[11px] text-slate-400" id="resultStatusDetail">Binari 000 = 0 Decimal</div>
+            </div>
+          </div>
+          <span id="outputBadge" class="font-mono font-bold text-sm px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">S = 0</span>
+        </div>
+      </div>
+
+      <!-- Diagrama de Karnaugh -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-border-all text-sky-400"></i> Mapa de Karnaugh (3 Vars)</span>
+          <span class="text-xs font-mono text-emerald-400 font-bold">S = C + A'B</span>
+        </h2>
+
+        <div class="overflow-x-auto flex justify-center p-2 bg-slate-950 rounded-xl border border-slate-800">
+          <table class="text-center font-mono text-xs border-collapse">
+            <thead>
+              <tr>
+                <th class="p-2 text-slate-500 text-[10px] border-b border-r border-slate-800">A \ BC</th>
+                <th class="p-2 text-sky-400 border-b border-slate-800 font-bold">00</th>
+                <th class="p-2 text-indigo-400 border-b border-slate-800 font-bold bg-indigo-950/30">01</th>
+                <th class="p-2 text-indigo-400 border-b border-slate-800 font-bold bg-indigo-950/30">11</th>
+                <th class="p-2 text-sky-400 border-b border-slate-800 font-bold">10</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="p-2 text-sky-400 font-bold border-r border-slate-800">0</td>
+                <td id="cell-000" class="p-3 border border-slate-800 transition-all">0</td>
+                <td id="cell-001" class="p-3 border border-slate-800 bg-indigo-950/40 text-indigo-300 font-bold transition-all">1</td>
+                <td id="cell-011" class="p-3 border border-slate-800 bg-purple-950/60 text-amber-300 font-bold transition-all">1</td>
+                <td id="cell-010" class="p-3 border border-slate-800 bg-emerald-950/40 text-emerald-300 font-bold transition-all">1</td>
+              </tr>
+              <tr>
+                <td class="p-2 text-sky-400 font-bold border-r border-slate-800">1</td>
+                <td id="cell-100" class="p-3 border border-slate-800 transition-all">0</td>
+                <td id="cell-101" class="p-3 border border-slate-800 bg-indigo-950/40 text-indigo-300 font-bold transition-all">1</td>
+                <td id="cell-111" class="p-3 border border-slate-800 bg-indigo-950/40 text-indigo-300 font-bold transition-all">1</td>
+                <td id="cell-110" class="p-3 border border-slate-800 transition-all">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-2 text-[11px] font-mono flex justify-around text-slate-400">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-indigo-900/60 border border-indigo-500"></span> Grup de 4: C</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-900/60 border border-emerald-500"></span> Grup de 2: A'B</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Circuit i Taula de Veritat -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Esquema del Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-indigo-400"></i> Esquema de Portes Lògiques</span>
+          <span class="text-xs font-mono text-amber-400 font-bold" id="txtCircuitTitle">Mode Estàndard (S = C + A'B)</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center">
+          <canvas id="circuitCanvas" width="650" height="250" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Taula de Veritat dels Nombres Primers -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-table text-sky-400"></i> Taula de Veritat (Nombres 0 a 7)</span>
+          <span class="text-xs font-mono text-amber-400" id="lblCurrentBin">ABC = 000</span>
+        </h2>
+
+        <div class="overflow-y-auto max-h-[200px] rounded-xl border border-slate-700">
+          <table class="w-full text-center text-xs font-mono">
+            <thead class="bg-slate-950 text-indigo-400 uppercase sticky top-0 border-b border-slate-700 font-bold">
+              <tr>
+                <th class="py-1.5 px-2 border-r border-slate-800">Decimal</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">A</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">B</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">C</th>
+                <th class="py-1.5 px-2 border-r border-slate-800">Nombre Primer?</th>
+                <th class="py-1.5 px-2 text-emerald-400">Sortida (S)</th>
+              </tr>
+            </thead>
+            <tbody id="truthTableBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let bits = { A: 0, B: 0, C: 0 };
+    let circuitMode = 'simplificat'; // 'simplificat' o 'nand'
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    const primesData = [
+      { dec: 0, A: 0, B: 0, C: 0, isPrime: false },
+      { dec: 1, A: 0, B: 0, C: 1, isPrime: true },
+      { dec: 2, A: 0, B: 1, C: 0, isPrime: true },
+      { dec: 3, A: 0, B: 1, C: 1, isPrime: true },
+      { dec: 4, A: 1, B: 0, C: 0, isPrime: false },
+      { dec: 5, A: 1, B: 0, C: 1, isPrime: true },
+      { dec: 6, A: 1, B: 1, C: 0, isPrime: false },
+      { dec: 7, A: 1, B: 1, C: 1, isPrime: true }
+    ];
+
+    function toggleBit(bit) {
+      bits[bit] = bits[bit] === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function setCircuitMode(mode) {
+      circuitMode = mode;
+      document.getElementById('btnSimplificat').className = mode === 'simplificat' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      document.getElementById('btnNand').className = mode === 'nand' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+
+      document.getElementById('txtCircuitTitle').innerText = mode === 'simplificat' ? "Mode Estàndard (S = C + A'B)" : "Mode Universals NAND (S = /( /C · /(A'B) ))";
+      updateUI();
+    }
+
+    function computeOutput(A, B, C) {
+      // S = C + A'B
+      const notA = A === 0 ? 1 : 0;
+      return (C === 1 || (notA === 1 && B === 1)) ? 1 : 0;
+    }
+
+    function updateUI() {
+      // Actualitzar botons de bits
+      ['A', 'B', 'C'].forEach(b => {
+        const val = bits[b];
+        document.getElementById('val' + b).innerText = val;
+        document.getElementById('btn' + b).className = val === 1
+          ? 'p-3 rounded-xl border bg-indigo-600/20 text-indigo-300 border-indigo-500 font-mono text-xs font-bold transition flex flex-col items-center gap-1 shadow-lg shadow-indigo-500/10'
+          : 'p-3 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold transition flex flex-col items-center gap-1';
+      });
+
+      const decVal = bits.A * 4 + bits.B * 2 + bits.C;
+      const currentS = computeOutput(bits.A, bits.B, bits.C);
+
+      // Caixa de resultat
+      const box = document.getElementById('resultStatusBox');
+      const decBadge = document.getElementById('decBadge');
+      const title = document.getElementById('resultStatusTitle');
+      const detail = document.getElementById('resultStatusDetail');
+      const badge = document.getElementById('outputBadge');
+
+      decBadge.innerText = decVal;
+
+      if (currentS === 1) {
+        box.className = 'p-3.5 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-200 flex items-center justify-between transition-all';
+        decBadge.className = 'w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-mono font-bold text-lg shadow-lg shadow-emerald-600/30';
+        title.innerText = 'NOMBRE PRIMER DETECTAT';
+        detail.innerText = `El nombre ${decVal} (Binari ${bits.A}${bits.B}${bits.C}) és primer`;
+        badge.className = 'font-mono font-bold text-sm px-3 py-1 rounded-lg bg-emerald-600 text-white shadow-lg shadow-emerald-600/40';
+        badge.innerText = 'S = 1';
+      } else {
+        box.className = 'p-3.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-300 flex items-center justify-between transition-all';
+        decBadge.className = 'w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 flex items-center justify-center font-mono font-bold text-lg';
+        title.innerText = 'Nombre No Primer';
+        detail.innerText = `El nombre ${decVal} (Binari ${bits.A}${bits.B}${bits.C}) NO és primer`;
+        badge.className = 'font-mono font-bold text-sm px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400';
+        badge.innerText = 'S = 0';
+      }
+
+      // Ressaltat Karnaugh
+      const currentKey = `${bits.A}${bits.B}${bits.C}`;
+      document.querySelectorAll('[id^="cell-"]').forEach(el => el.classList.remove('kcell-active'));
+      const activeCell = document.getElementById('cell-' + currentKey);
+      if (activeCell) activeCell.classList.add('kcell-active');
+
+      document.getElementById('lblCurrentBin').innerText = `Binari: ABC = ${currentKey}`;
+
+      renderTruthTable();
+      drawCircuit();
+    }
+
+    function renderTruthTable() {
+      const tbody = document.getElementById('truthTableBody');
+      const decVal = bits.A * 4 + bits.B * 2 + bits.C;
+      let html = '';
+
+      primesData.forEach(row => {
+        const isCurrent = row.dec === decVal;
+        const realS = computeOutput(row.A, row.B, row.C);
+
+        const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+        const badgeColor = realS === 1 ? 'text-emerald-400 font-bold' : 'text-slate-500';
+
+        html += `<tr id="tr-row-${row.dec}" class="border-b border-slate-800/60 transition-all ${rowBg}">
+          <td class="py-1 px-2 border-r border-slate-800 font-bold">${row.dec}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.A}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.B}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${row.C}</td>
+          <td class="py-1 px-2 border-r border-slate-800 text-slate-400">${row.isPrime ? 'Primer' : 'No Primer'}</td>
+          <td class="py-1 px-2 ${badgeColor}">${realS}</td>
+        </tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // --- DIBUIX DEL CIRCUIT AMB LÍNIES MANHATTAN (90°) ---
+    function drawCircuit() {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const A = bits.A;
+      const B = bits.B;
+      const C = bits.C;
+      const S = computeOutput(A, B, C);
+      const notA = A === 0 ? 1 : 0;
+
+      if (circuitMode === 'simplificat') {
+        drawSimplificatHV(A, B, C, notA, S);
+      } else {
+        drawNandHV(A, B, C, notA, S);
+      }
+    }
+
+    function drawSimplificatHV(A, B, C, notA, S) {
+      const andOut = (notA === 1 && B === 1) ? 1 : 0;
+
+      // Linia A fins al NOT
+      drawWireHV([{x:40, y:50}, {x:140, y:50}], A === 1 ? '#10b981' : '#64748b', 'A = ' + A);
+      drawGateNOT(140, 35, 30, 30, notA === 1 ? '#10b981' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '9px monospace'; ctx.fillText('U3 NOT', 140, 75);
+
+      // Sortida NOT -> Entrada 1 AND
+      drawWireHV([{x:170, y:50}, {x:240, y:50}], notA === 1 ? '#10b981' : '#64748b');
+
+      // Línia B -> Entrada 2 AND
+      drawWireHV([{x:40, y:90}, {x:240, y:90}], B === 1 ? '#10b981' : '#64748b', 'B = ' + B);
+
+      // Porta AND2 (U1)
+      drawGateAND(240, 40, 60, 60, andOut === 1 ? '#10b981' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '10px monospace'; ctx.fillText('U1 AND2', 245, 115);
+
+      // Línia C -> Entrada 2 OR
+      drawWireHV([{x:40, y:180}, {x:390, y:180}, {x:390, y:140}, {x:420, y:140}], C === 1 ? '#10b981' : '#64748b', 'C = ' + C);
+
+      // Sortida AND -> Entrada 1 OR
+      drawWireHV([{x:300, y:70}, {x:370, y:70}, {x:370, y:100}, {x:420, y:100}], andOut === 1 ? '#10b981' : '#64748b');
+
+      // Porta OR2 (U5)
+      drawGateOR(420, 85, 75, 70, S === 1 ? '#f43f5e' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '10px monospace'; ctx.fillText('U5 OR2', 435, 170);
+
+      // Sortida S
+      drawWireHV([{x:495, y:120}, {x:600, y:120}], S === 1 ? '#f43f5e' : '#64748b', 'S = ' + S, true);
+    }
+
+    function drawNandHV(A, B, C, notA, S) {
+      const nandInvertA = notA;
+      const nandAndOut = !(notA === 1 && B === 1) ? 1 : 0; // /(A'B)
+      const nandInvertC = C === 0 ? 1 : 0; // /C
+
+      // Entrada A inversor NAND
+      drawWireHV([{x:40, y:45}, {x:120, y:45}, {x:120, y:40}, {x:160, y:40}], A === 1 ? '#10b981' : '#64748b', 'A = ' + A);
+      drawWireHV([{x:120, y:45}, {x:120, y:55}, {x:160, y:55}], A === 1 ? '#10b981' : '#64748b');
+
+      // U1 NAND2 (Inversor A)
+      drawGateNAND(160, 30, 50, 40, nandInvertA === 1 ? '#10b981' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '9px monospace'; ctx.fillText('U1 NAND', 165, 80);
+
+      // Connect U1 -> U4 NAND
+      drawWireHV([{x:210, y:50}, {x:260, y:50}], nandInvertA === 1 ? '#10b981' : '#64748b');
+      drawWireHV([{x:40, y:90}, {x:260, y:90}], B === 1 ? '#10b981' : '#64748b', 'B = ' + B);
+
+      // U4 NAND2 (A'B negat)
+      drawGateNAND(260, 40, 60, 60, nandAndOut === 1 ? '#10b981' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '9px monospace'; ctx.fillText('U4 NAND', 265, 115);
+
+      // Entrada C inversor NAND
+      drawWireHV([{x:40, y:180}, {x:180, y:180}, {x:180, y:170}, {x:220, y:170}], C === 1 ? '#10b981' : '#64748b', 'C = ' + C);
+      drawWireHV([{x:180, y:180}, {x:180, y:190}, {x:220, y:190}], C === 1 ? '#10b981' : '#64748b');
+
+      // U3 NAND2 (Inversor C)
+      drawGateNAND(220, 160, 50, 40, nandInvertC === 1 ? '#10b981' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '9px monospace'; ctx.fillText('U3 NAND', 225, 210);
+
+      // Connexions cap a U5 NAND2 final
+      drawWireHV([{x:320, y:70}, {x:390, y:70}, {x:390, y:100}, {x:430, y:100}], nandAndOut === 1 ? '#10b981' : '#64748b');
+      drawWireHV([{x:270, y:180}, {x:390, y:180}, {x:390, y:140}, {x:430, y:140}], nandInvertC === 1 ? '#10b981' : '#64748b');
+
+      // U5 NAND2 (Final)
+      drawGateNAND(430, 85, 65, 70, S === 1 ? '#f43f5e' : '#64748b');
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '9px monospace'; ctx.fillText('U5 NAND', 440, 170);
+
+      // Sortida S
+      drawWireHV([{x:495, y:120}, {x:600, y:120}], S === 1 ? '#f43f5e' : '#64748b', 'S = ' + S, true);
+    }
+
+    function drawWireHV(points, color, label = '', isOutput = false) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isOutput ? 3.5 : 2;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(label, points[0].x - 8, points[0].y + 4);
+      }
+    }
+
+    function drawGateNOT(x, y, w, h, strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = '#020617';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w - 6, y + h / 2);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x + w - 3, y + h / 2, 3, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+
+    function drawGateAND(x, y, w, h, strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = '#020617';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w / 2, y);
+      ctx.arc(x + w / 2, y + h / 2, h / 2, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+
+    function drawGateNAND(x, y, w, h, strokeColor) {
+      drawGateAND(x, y, w - 10, h, strokeColor);
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = '#020617';
+      ctx.beginPath();
+      ctx.arc(x + w - 5, y + h / 2, 5, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+
+    function drawGateOR(x, y, w, h, strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = '#020617';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + w / 2, y + h / 4, x + w, y + h / 2);
+      ctx.quadraticCurveTo(x + w / 2, y + (3 * h) / 4, x, y + h);
+      ctx.quadraticCurveTo(x + w / 3, y + h / 2, x, y);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+
+    window.onload = () => {
+      updateUI();
+    };
+  </script>
+</body>
+</html>
