@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrenador d'Aritmètica Binària (Ca2) - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-600/30">
+          <i class="fa-solid fa-calculator text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-indigo-400">Entrenador d'Aritmètica Binària i Complement a 2</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mode -->
+      <div class="flex items-center gap-3">
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+          <button id="tabCalc" onclick="setMode('calc')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white">Calculadora Pas a Pas</button>
+          <button id="tabQuiz" onclick="setMode('quiz')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">Mode Test / Pràctica</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- MODE CALCULADORA PAS A PAS -->
+    <div id="sectionCalc" class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
+      
+      <!-- Panel Esquerra: Entrades i Selecció d'Operació -->
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-4">
+          <h2 class="text-sm font-semibold text-indigo-400 border-b border-slate-700 pb-2 flex items-center gap-2">
+            <i class="fa-solid fa-sliders"></i> Dades d'Entrada
+          </h2>
+
+          <!-- Operació: Suma o Resta -->
+          <div>
+            <label class="block text-xs text-slate-400 mb-1 font-medium">Tipus d'Operació:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnOpAdd" onclick="setOp('+')" class="py-2 rounded-xl border font-bold text-xs bg-indigo-600 border-indigo-500 text-white">
+                <i class="fa-solid fa-plus mr-1"></i> Suma (A + B)
+              </button>
+              <button id="btnOpSub" onclick="setOp('-')" class="py-2 rounded-xl border font-bold text-xs bg-slate-950 border-slate-700 text-slate-400">
+                <i class="fa-solid fa-minus mr-1"></i> Resta en Ca2 (A - B)
+              </button>
+            </div>
+          </div>
+
+          <!-- Valor A (Minuend / Sumand 1) -->
+          <div>
+            <label class="block text-xs text-slate-400 mb-1 font-medium">Primer Nombre (A):</label>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <span class="text-[10px] text-slate-500 block mb-0.5">Decimal</span>
+                <input type="number" id="numADec" oninput="onInputDec('A')" value="39" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-indigo-300 focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-500 block mb-0.5">Binari</span>
+                <input type="text" id="numABin" oninput="onInputBin('A')" value="100111" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Valor B (Subtrahend / Sumand 2) -->
+          <div>
+            <label class="block text-xs text-slate-400 mb-1 font-medium">Segon Nombre (B):</label>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <span class="text-[10px] text-slate-500 block mb-0.5">Decimal</span>
+                <input type="number" id="numBDec" oninput="onInputDec('B')" value="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-indigo-300 focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-500 block mb-0.5">Binari</span>
+                <input type="text" id="numBBin" oninput="onInputBin('B')" value="001111" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Valors d'exemple ràpids -->
+          <div class="pt-2 border-t border-slate-700">
+            <span class="text-[11px] text-slate-400 font-medium block mb-1.5">Carregar Exemples Teòrics:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="loadExample(39, 15, '+')" class="px-2.5 py-1 bg-slate-900 border border-slate-700 hover:border-indigo-500 rounded-lg text-[11px] text-slate-300">Suma: 39 + 15</button>
+              <button onclick="loadExample(27, 5, '+')" class="px-2.5 py-1 bg-slate-900 border border-slate-700 hover:border-indigo-500 rounded-lg text-[11px] text-slate-300">Suma: 27 + 5</button>
+              <button onclick="loadExample(78, 36, '-')" class="px-2.5 py-1 bg-slate-900 border border-slate-700 hover:border-indigo-500 rounded-lg text-[11px] text-slate-300">Resta: 78 - 36</button>
+              <button onclick="loadExample(56, 7, '-')" class="px-2.5 py-1 bg-slate-900 border border-slate-700 hover:border-indigo-500 rounded-lg text-[11px] text-slate-300">Resta: 56 - 7</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel Dreta: Desenvolupament Pas a Pas -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1 flex flex-col">
+          <h2 class="text-sm font-semibold text-slate-200 border-b border-slate-700 pb-2 flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-square-binary text-emerald-400"></i> Desenvolupament Pas a Pas</span>
+            <span id="lblOpSummary" class="text-xs font-mono text-amber-400 font-bold">39 + 15 = 54</span>
+          </h2>
+
+          <div id="stepContainer" class="mt-4 flex flex-col gap-4 flex-1">
+            <!-- Generat per JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MODE TEST / EXERCICIS PRÀCTICS -->
+    <div id="sectionQuiz" class="lg:col-span-12 hidden grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
+      <div class="lg:col-span-8 lg:col-start-3 bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-xl flex flex-col gap-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+            <i class="fa-solid fa-graduation-cap"></i> Exercici d'Aritmètica Binària
+          </h2>
+          <button onclick="generateQuiz()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-right"></i> Nou Exercici
+          </button>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center font-mono">
+          <span class="text-xs text-slate-400 block mb-1" id="quizTypeLabel">Resol la següent operació binària:</span>
+          <div class="text-xl text-indigo-300 font-bold tracking-wider my-2" id="quizProblemText">100111 + 001111</div>
+          <span class="text-xs text-slate-500" id="quizDecimalHint">(Equivalent en decimal: 39 + 15)</span>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-xs text-slate-300 font-medium">Introdueix el resultat binari final:</label>
+          <div class="flex gap-2">
+            <input type="text" id="quizInput" placeholder="Ex: 110110" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+            <button onclick="checkQuizAnswer()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition">
+              Comprovar
+            </button>
+          </div>
+        </div>
+
+        <div id="quizFeedback" class="p-3 rounded-xl text-xs font-mono hidden"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let mode = 'calc'; // 'calc' o 'quiz'
+    let currentOp = '+'; // '+' o '-'
+    let quizData = {};
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('tabCalc').className = m === 'calc' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      document.getElementById('tabQuiz').className = m === 'quiz' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+
+      if (m === 'calc') {
+        document.getElementById('sectionCalc').classList.remove('hidden');
+        document.getElementById('sectionQuiz').classList.add('hidden');
+      } else {
+        document.getElementById('sectionCalc').classList.add('hidden');
+        document.getElementById('sectionQuiz').classList.remove('hidden');
+        generateQuiz();
+      }
+    }
+
+    function setOp(op) {
+      currentOp = op;
+      document.getElementById('btnOpAdd').className = op === '+' ? 'py-2 rounded-xl border font-bold text-xs bg-indigo-600 border-indigo-500 text-white' : 'py-2 rounded-xl border font-bold text-xs bg-slate-950 border-slate-700 text-slate-400';
+      document.getElementById('btnOpSub').className = op === '-' ? 'py-2 rounded-xl border font-bold text-xs bg-indigo-600 border-indigo-500 text-white' : 'py-2 rounded-xl border font-bold text-xs bg-slate-950 border-slate-700 text-slate-400';
+      recalculate();
+    }
+
+    function onInputDec(target) {
+      const decInput = document.getElementById(`num${target}Dec`);
+      const binInput = document.getElementById(`num${target}Bin`);
+      let val = parseInt(decInput.value) || 0;
+      if (val < 0) val = 0;
+      binInput.value = val.toString(2);
+      recalculate();
+    }
+
+    function onInputBin(target) {
+      const decInput = document.getElementById(`num${target}Dec`);
+      const binInput = document.getElementById(`num${target}Bin`);
+      let binStr = binInput.value.replace(/[^01]/g, '');
+      binInput.value = binStr;
+      decInput.value = binStr ? parseInt(binStr, 2) : 0;
+      recalculate();
+    }
+
+    function loadExample(a, b, op) {
+      document.getElementById('numADec').value = a;
+      document.getElementById('numABin').value = a.toString(2);
+      document.getElementById('numBDec').value = b;
+      document.getElementById('numBBin').value = b.toString(2);
+      setOp(op);
+    }
+
+    function recalculate() {
+      const aDec = parseInt(document.getElementById('numADec').value) || 0;
+      const bDec = parseInt(document.getElementById('numBDec').value) || 0;
+      const container = document.getElementById('stepContainer');
+
+      if (currentOp === '+') {
+        renderAddition(aDec, bDec, container);
+      } else {
+        renderSubtractionCa2(aDec, bDec, container);
+      }
+    }
+
+    function renderAddition(aDec, bDec, container) {
+      let aBin = aDec.toString(2);
+      let bBin = bDec.toString(2);
+      const maxLen = Math.max(aBin.length, bBin.length);
+
+      aBin = aBin.padStart(maxLen, '0');
+      bBin = bBin.padStart(maxLen, '0');
+
+      // Càlcul d'acarreus
+      let carry = Array(maxLen + 1).fill(0);
+      let resBits = [];
+
+      for (let i = maxLen - 1; i >= 0; i--) {
+        const bitA = parseInt(aBin[i]);
+        const bitB = parseInt(bBin[i]);
+        const sum = bitA + bitB + carry[i + 1];
+        resBits.unshift(sum % 2);
+        carry[i] = Math.floor(sum / 2);
+      }
+
+      if (carry[0] > 0) {
+        resBits.unshift(carry[0]);
+      }
+
+      const resBinStr = resBits.join('');
+      const resDec = aDec + bDec;
+
+      document.getElementById('lblOpSummary').innerText = `${aDec} + ${bDec} = ${resDec}`;
+
+      let html = `
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-sm leading-relaxed overflow-x-auto">
+          <div class="text-xs text-slate-500 mb-2">// Procediment de la Suma Binària:</div>
+          
+          <table class="text-right border-collapse mx-auto">
+            <tr class="text-amber-400 text-xs">
+              <td class="pr-3 text-slate-500 italic text-[11px]">Carry (Acarreus):</td>
+              ${carry.map(c => `<td class="px-1">${c}</td>`).join('')}
+              <td></td>
+            </tr>
+            <tr class="text-slate-300">
+              <td class="pr-3 text-slate-400">Sumand A:</td>
+              ${carry[0] > 0 ? '<td></td>' : ''}
+              ${aBin.split('').map(b => `<td class="px-1">${b}</td>`).join('')}
+              <td class="pl-3 text-indigo-400">(${aDec})</td>
+            </tr>
+            <tr class="text-slate-300 border-b-2 border-slate-700">
+              <td class="pr-3 text-slate-400">+ Sumand B:</td>
+              ${carry[0] > 0 ? '<td></td>' : ''}
+              ${bBin.split('').map(b => `<td class="px-1">${b}</td>`).join('')}
+              <td class="pl-3 text-indigo-400">(${bDec})</td>
+            </tr>
+            <tr class="text-emerald-400 font-bold text-base">
+              <td class="pr-3 text-emerald-400 text-xs font-normal">Resultat:</td>
+              ${resBits.map(b => `<td class="px-1 pt-1">${b}</td>`).join('')}
+              <td class="pl-3 text-emerald-400 text-xs font-normal">(${resDec})</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+          <span class="font-bold text-emerald-400"><i class="fa-solid fa-check mr-1"></i> Comprovació:</span> 
+          La suma binària de <code class="text-sky-300">${aBin}</code> i <code class="text-sky-300">${bBin}</code> dona com a resultat <code class="text-emerald-400 font-bold">${resBinStr}</code>, equivalent a <strong>${resDec}</strong> en decimal.
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function renderSubtractionCa2(aDec, bDec, container) {
+      let aBin = aDec.toString(2);
+      let bBin = bDec.toString(2);
+      let maxLen = Math.max(aBin.length, bBin.length);
+
+      aBin = aBin.padStart(maxLen, '0');
+      bBin = bBin.padStart(maxLen, '0');
+
+      // 1. Ca1 de B
+      let ca1Bits = bBin.split('').map(b => b === '0' ? '1' : '0').join('');
+
+      // 2. Ca2 de B (Ca1 + 1)
+      let ca2Dec = parseInt(ca1Bits, 2) + 1;
+      let ca2Bin = ca2Dec.toString(2).padStart(maxLen, '0');
+
+      // 3. Suma A + Ca2(B)
+      let carry = Array(maxLen + 1).fill(0);
+      let resBits = [];
+
+      for (let i = maxLen - 1; i >= 0; i--) {
+        const bitA = parseInt(aBin[i]);
+        const bitCa2 = parseInt(ca2Bin[i]);
+        const sum = bitA + bitCa2 + carry[i + 1];
+        resBits.unshift(sum % 2);
+        carry[i] = Math.floor(sum / 2);
+      }
+
+      const overflowBit = carry[0];
+      const finalBinResult = resBits.join('');
+      const finalDecResult = aDec - bDec;
+
+      document.getElementById('lblOpSummary').innerText = `${aDec} - ${bDec} = ${finalDecResult}`;
+
+      let html = `
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs leading-relaxed space-y-3">
+          
+          <div class="border-b border-slate-800 pb-2">
+            <span class="text-amber-400 font-bold">Pas 1: Obtenir el Complement a 1 (Ca1) del subtrahend (${bBin})</span>
+            <p class="text-slate-400 text-[11px] mt-0.5">S'inverteixen tots els bits (0 $\\rightarrow$ 1, 1 $\\rightarrow$ 0):</p>
+            <div class="text-sky-300 font-bold text-sm mt-1">Ca1(${bBin}) = ${ca1Bits}</div>
+          </div>
+
+          <div class="border-b border-slate-800 pb-2">
+            <span class="text-amber-400 font-bold">Pas 2: Obtenir el Complement a 2 (Ca2)</span>
+            <p class="text-slate-400 text-[11px] mt-0.5">Es suma 1 al Complement a 1 (Ca1 + 1):</p>
+            <div class="text-emerald-400 font-bold text-sm mt-1">Ca2(${bBin}) = ${ca1Bits} + 1 = ${ca2Bin}</div>
+          </div>
+
+          <div>
+            <span class="text-amber-400 font-bold">Pas 3: Sumar el Minuend (${aBin}) amb el Ca2 del Subtrahend (${ca2Bin})</span>
+            <table class="text-right border-collapse mx-auto mt-2 text-sm">
+              <tr class="text-amber-400 text-xs">
+                <td class="pr-3 text-slate-500 italic text-[11px]">Carry:</td>
+                ${carry.map(c => `<td class="px-1">${c}</td>`).join('')}
+              </tr>
+              <tr class="text-slate-300">
+                <td class="pr-3 text-slate-400">Minuend (A):</td>
+                <td></td>
+                ${aBin.split('').map(b => `<td class="px-1">${b}</td>`).join('')}
+                <td class="pl-3 text-indigo-400">(${aDec})</td>
+              </tr>
+              <tr class="text-slate-300 border-b-2 border-slate-700">
+                <td class="pr-3 text-slate-400">+ Ca2(B):</td>
+                <td></td>
+                ${ca2Bin.split('').map(b => `<td class="px-1">${b}</td>`).join('')}
+                <td class="pl-3 text-indigo-400">(-${bDec})</td>
+              </tr>
+              <tr class="text-emerald-400 font-bold text-base">
+                <td class="pr-3 text-emerald-400 text-xs font-normal">Suma parcial:</td>
+                <td class="px-1 text-rose-400 font-bold">(${overflowBit})</td>
+                ${resBits.map(b => `<td class="px-1 pt-1">${b}</td>`).join('')}
+                <td class="pl-3 text-emerald-400 text-xs font-normal">(${finalDecResult})</td>
+              </tr>
+            </table>
+          </div>
+
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+          <span class="font-bold text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Descart de l'Overflow:</span> 
+          En la resta per Ca2, l'acarreu final de l'esquerra <code class="text-rose-400 font-bold">(${overflowBit})</code> es descarta. El resultat binari final és <code class="text-emerald-400 font-bold">${finalBinResult}</code> (equivalent a <strong>${finalDecResult}</strong> en decimal).
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    // --- MODE QUIZ / TEST ---
+    function generateQuiz() {
+      const isAdd = Math.random() > 0.5;
+      const a = Math.floor(Math.random() * 45) + 10;
+      const b = isAdd ? Math.floor(Math.random() * 30) + 5 : Math.floor(Math.random() * (a - 1)) + 1;
+
+      const aBin = a.toString(2);
+      const bBin = b.toString(2);
+
+      let expectedBin = '';
+      if (isAdd) {
+        expectedBin = (a + b).toString(2);
+      } else {
+        expectedBin = (a - b).toString(2);
+      }
+
+      quizData = { a, b, isAdd, expectedBin };
+
+      document.getElementById('quizTypeLabel').innerText = isAdd ? 'Resol la següent SUMA binària:' : 'Resol la següent RESTA binària (mitjançant Ca2):';
+      document.getElementById('quizProblemText').innerText = `${aBin} ${isAdd ? '+' : '-'} ${bBin}`;
+      document.getElementById('quizDecimalHint').innerText = `(Equivalent en decimal: ${a} ${isAdd ? '+' : '-'} ${b})`;
+      document.getElementById('quizInput').value = '';
+      document.getElementById('quizFeedback').className = 'p-3 rounded-xl text-xs font-mono hidden';
+    }
+
+    function checkQuizAnswer() {
+      const userAns = document.getElementById('quizInput').value.trim().replace(/^0+/, '');
+      const expectedClean = quizData.expectedBin.replace(/^0+/, '');
+      const fb = document.getElementById('quizFeedback');
+      fb.classList.remove('hidden');
+
+      if (userAns === expectedClean || (userAns === '' && expectedClean === '')) {
+        fb.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300';
+        fb.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Excel·lent! La resposta ${quizData.expectedBin} és correcta.`;
+      } else {
+        fb.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-500/20 border border-rose-500/50 text-rose-300';
+        fb.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mr-1"></i> Resposta incorrecta. El resultat correcte és ${quizData.expectedBin}.`;
+      }
+    }
+
+    window.onload = () => {
+      recalculate();
+    };
+  </script>
+</body>
+</html>
