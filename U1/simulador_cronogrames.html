@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Cronogrames Temporals - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-600/30">
+          <i class="fa-solid fa-chart-line text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-blue-400">Simulador de Cronogrames Digitals</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Controls de reproducció -->
+      <div class="flex items-center gap-2">
+        <button onclick="togglePlay()" id="btnPlay" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2">
+          <i class="fa-solid fa-play" id="iconPlay"></i> <span id="lblPlay">Iniciar Temps</span>
+        </button>
+        <button onclick="resetTimeline()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-rotate-left"></i> Reiniciar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Controls d'Entrada -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Entrades del Flip-Flop JK</span>
+          <span class="text-xs font-mono text-amber-400">Flanc de Pujada (0 → 1)</span>
+        </h2>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btnJ" onclick="toggleInput('J')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Entrada J (Set)</span>
+            <span id="valJ" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+          </button>
+          <button id="btnK" onclick="toggleInput('K')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Entrada K (Reset)</span>
+            <span id="valK" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+          </button>
+        </div>
+
+        <div class="border-t border-slate-700 pt-3 flex flex-col gap-2">
+          <label class="text-xs text-slate-400 font-mono">Control de Rellotge (CLK):</label>
+          <button onclick="triggerManualClock()" class="p-3 rounded-xl border bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30 font-mono text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95">
+            <i class="fa-solid fa-bolt"></i> Provocar Flanc de Pujada CLK
+          </button>
+        </div>
+      </div>
+
+      <!-- Estat actual -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Estat Actual de la Sortida:</div>
+          <div id="txtState" class="text-xl font-extrabold text-emerald-400 font-mono">Q = 0 | ~Q = 1</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="badgeMode" class="px-3 py-1 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-mono text-xs font-bold">Memòria (0,0)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Cronograma Visual -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-wave-square text-blue-400"></i> Diagrama Temporal (Cronograma)</span>
+          <span class="text-xs font-mono text-rose-400 font-bold"><i class="fa-solid fa-grip-lines-vertical"></i> Línia Vermella = Temps Actual</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center overflow-hidden">
+          <canvas id="chronoCanvas" width="650" height="280" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let isRunning = false;
+    let timeIndex = 0;
+    const maxTimePoints = 120;
+
+    let inJ = 0;
+    let inK = 0;
+    let inCLK = 0;
+    let stateQ = 0;
+
+    // Històrics de senyals per al cronograma
+    let historyCLK = new Array(maxTimePoints).fill(0);
+    let historyJ = new Array(maxTimePoints).fill(0);
+    let historyK = new Array(maxTimePoints).fill(0);
+    let historyQ = new Array(maxTimePoints).fill(0);
+
+    const cvs = document.getElementById('chronoCanvas');
+    const ctx = cvs.getContext('2d');
+
+    let clkCounter = 0;
+    let timerId = null;
+
+    function toggleInput(k) {
+      if (k === 'J') inJ = inJ === 0 ? 1 : 0;
+      if (k === 'K') inK = inK === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function triggerManualClock() {
+      // Simula un pols manual de CLK
+      inCLK = 1;
+      evaluateFF(true);
+      stepTime();
+      setTimeout(() => {
+        inCLK = 0;
+        stepTime();
+      }, 200);
+    }
+
+    function togglePlay() {
+      isRunning = !isRunning;
+      document.getElementById('lblPlay').innerText = isRunning ? 'Pausar' : 'Iniciar Temps';
+      document.getElementById('iconPlay').className = isRunning ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+      document.getElementById('btnPlay').className = isRunning ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-2' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2';
+
+      if (isRunning) {
+        timerId = setInterval(autoStep, 150);
+      } else {
+        clearInterval(timerId);
+      }
+    }
+
+    function autoStep() {
+      clkCounter++;
+      // Generar un senyal de rellotge quadrat automàtic
+      let prevCLK = inCLK;
+      if (clkCounter % 4 === 0) {
+        inCLK = 1;
+      } else if (clkCounter % 4 === 2) {
+        inCLK = 0;
+      }
+
+      // Si hi ha hagut flanc de pujada (0 -> 1)
+      let isRisingEdge = (prevCLK === 0 && inCLK === 1);
+      if (isRisingEdge) {
+        evaluateFF(true);
+      }
+
+      stepTime();
+    }
+
+    function evaluateFF(isRisingEdge) {
+      if (!isRisingEdge) return;
+
+      if (inJ === 0 && inK === 0) {
+        // Memòria (no canvia)
+      } else if (inJ === 1 && inK === 0) {
+        stateQ = 1; // Set
+      } else if (inJ === 0 && inK === 1) {
+        stateQ = 0; // Reset
+      } else if (inJ === 1 && inK === 1) {
+        stateQ = stateQ === 0 ? 1 : 0; // Toggle
+      }
+    }
+
+    function stepTime() {
+      historyCLK.shift(); historyCLK.push(inCLK);
+      historyJ.shift(); historyJ.push(inJ);
+      historyK.shift(); historyK.push(inK);
+      historyQ.shift(); historyQ.push(stateQ);
+
+      drawChrono();
+      updateUI();
+    }
+
+    function resetTimeline() {
+      isRunning = false;
+      clearInterval(timerId);
+      document.getElementById('lblPlay').innerText = 'Iniciar Temps';
+      document.getElementById('iconPlay').className = 'fa-solid fa-play';
+      document.getElementById('btnPlay').className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2';
+
+      stateQ = 0;
+      inCLK = 0;
+      inJ = 0;
+      inK = 0;
+      historyCLK.fill(0);
+      historyJ.fill(0);
+      historyK.fill(0);
+      historyQ.fill(0);
+
+      drawChrono();
+      updateUI();
+    }
+
+    function updateUI() {
+      ['J', 'K'].forEach(k => {
+        const val = k === 'J' ? inJ : inK;
+        document.getElementById('val' + k).innerText = val;
+        document.getElementById('btn' + k).className = val === 1 
+          ? 'p-3 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs font-bold flex justify-between items-center'
+          : 'p-3 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold flex justify-between items-center';
+      });
+
+      const notQ = stateQ === 0 ? 1 : 0;
+      document.getElementById('txtState').innerText = `Q = ${stateQ} | ~Q = ${notQ}`;
+
+      const badge = document.getElementById('badgeMode');
+      if (inJ === 0 && inK === 0) badge.innerText = 'Memòria (No canvia)';
+      else if (inJ === 1 && inK === 0) badge.innerText = 'Set (Q = 1)';
+      else if (inJ === 0 && inK === 1) badge.innerText = 'Reset (Q = 0)';
+      else if (inJ === 1 && inK === 1) badge.innerText = 'Toggle (Inverteix)';
+    }
+
+    function drawChrono() {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const marginX = 70;
+      const stepX = (cvs.width - marginX - 20) / maxTimePoints;
+
+      // Seccions verticals per a cada senyal
+      const tracks = [
+        { name: 'CLK', data: historyCLK, color: '#f59e0b', yLow: 60, yHigh: 30 },
+        { name: 'J', data: historyJ, color: '#38bdf8', yLow: 120, yHigh: 90 },
+        { name: 'K', data: historyK, color: '#38bdf8', yLow: 180, yHigh: 150 },
+        { name: 'Q', data: historyQ, color: '#10b981', yLow: 240, yHigh: 210 }
+      ];
+
+      // Reixeta de fons puntejada
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+
+      for (let i = 0; i < maxTimePoints; i += 10) {
+        const x = marginX + i * stepX;
+        ctx.beginPath();
+        ctx.moveTo(x, 10);
+        ctx.lineTo(x, 260);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Dibuix de cada senyal (Traçat ortogonal rectangulat)
+      tracks.forEach(track => {
+        // Etiqueta del senyal
+        ctx.fillStyle = track.color;
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(track.name, marginX - 15, track.yHigh + 18);
+
+        // Línia base horitzontal de fons
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(marginX, track.yLow);
+        ctx.lineTo(cvs.width - 20, track.yLow);
+        ctx.stroke();
+
+        // Traçat de l'ona quadrada
+        ctx.strokeStyle = track.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+
+        let currentY = track.data[0] === 1 ? track.yHigh : track.yLow;
+        ctx.moveTo(marginX, currentY);
+
+        for (let i = 1; i < maxTimePoints; i++) {
+          const x = marginX + i * stepX;
+          const targetY = track.data[i] === 1 ? track.yHigh : track.yLow;
+
+          if (targetY !== currentY) {
+            // Canvi vertical de flanc (90°)
+            ctx.lineTo(x, currentY);
+            ctx.lineTo(x, targetY);
+            currentY = targetY;
+          } else {
+            ctx.lineTo(x, currentY);
+          }
+        }
+        ctx.stroke();
+      });
+
+      // Línia vermella indicadora de temps actual (Al final de la línia de temps)
+      const currentCursorX = cvs.width - 20;
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(currentCursorX, 10);
+      ctx.lineTo(currentCursorX, 260);
+      ctx.stroke();
+
+      // Cap de la línia vermella
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(currentCursorX, 10, 4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    window.onload = () => {
+      drawChrono();
+      updateUI();
+    };
+  </script>
+</body>
+</html>
