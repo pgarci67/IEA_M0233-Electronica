@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Flip-Flops i Latches - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-600/30">
+          <i class="fa-solid fa-clock text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-blue-400">Simulador de Circuits Seqüencials (Flip-Flops)</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mode -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-300 font-medium font-mono">Model:</span>
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+          <button id="btnFFD" onclick="setMode('FFD')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white">Flip-Flop D</button>
+          <button id="btnFFJK" onclick="setMode('FFJK')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">Flip-Flop JK</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Controls d'Entrada -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Panel de Controls de senyal -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Entrades de Control</span>
+          <span id="lblModeTitle" class="text-xs font-mono text-amber-400">Flip-Flop D (Activació per Flanc Positiu)</span>
+        </h2>
+
+        <!-- Inputs FFD -->
+        <div id="boxFFD" class="flex flex-col gap-3">
+          <button id="btnD" onclick="toggleInput('D')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Entrada D (Data)</span>
+            <span id="valD" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+          </button>
+        </div>
+
+        <!-- Inputs FFJK -->
+        <div id="boxFFJK" class="hidden flex flex-col gap-3">
+          <div class="grid grid-cols-2 gap-3">
+            <button id="btnJ" onclick="toggleInput('J')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+              <span>Entrada J (Set)</span>
+              <span id="valJ" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+            </button>
+            <button id="btnK" onclick="toggleInput('K')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+              <span>Entrada K (Reset)</span>
+              <span id="valK" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Rellotge / Pulsador CLK -->
+        <div class="border-t border-slate-700 pt-3">
+          <label class="text-xs text-slate-400 font-mono block mb-2">Generador de Rellotge (CLK):</label>
+          <div class="grid grid-cols-2 gap-3">
+            <button id="btnCLK" onclick="triggerClockPulse()" class="p-3 rounded-xl border bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30 font-mono text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95">
+              <i class="fa-solid fa-[#0]"></i> Pulsació manual CLK (0 → 1)
+            </button>
+            <button id="btnAutoCLK" onclick="toggleAutoClock()" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex items-center justify-center gap-2 hover:text-white transition">
+              <i class="fa-solid fa-play" id="iconAutoCLK"></i> <span id="lblAutoCLK">Rellotge Auto (OFF)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estat de la Sortida -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Estat de la Sortida:</div>
+          <div id="txtStateLabel" class="text-xl font-extrabold text-emerald-400 font-mono">Q = 0 | ~Q = 1</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="ledIndicator" class="w-8 h-8 rounded-full bg-slate-950 border-2 border-slate-700 shadow-inner transition-all duration-200"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Circuit i Taula -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Esquema del Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-blue-400"></i> Esquema de Simulació del Flip-Flop</span>
+          <span class="text-xs font-mono text-amber-400 font-bold" id="txtDiagramSubtitle">Flip-Flop D (Multisim)</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center">
+          <canvas id="circuitCanvas" width="650" height="260" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Taula de Veritat -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-table text-sky-400"></i> Taula de Veritat Dinàmica</span>
+          <span class="text-xs font-mono text-emerald-400" id="lblTableMode">Taula del Flip-Flop D</span>
+        </h2>
+
+        <div class="overflow-y-auto max-h-[190px] rounded-xl border border-slate-700">
+          <table class="w-full text-center text-xs font-mono">
+            <thead id="truthHead" class="bg-slate-950 text-blue-400 uppercase sticky top-0 border-b border-slate-700 font-bold">
+              <!-- JS -->
+            </thead>
+            <tbody id="truthBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let mode = 'FFD'; // 'FFD' o 'FFJK'
+    let stateQ = 0;   // Estat intern Q (0 o 1)
+    
+    // Entrades
+    let inD = 0;
+    let inJ = 0;
+    let inK = 0;
+    let clkValue = 0;
+    let autoClockTimer = null;
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('btnFFD').className = m === 'FFD' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      document.getElementById('btnFFJK').className = m === 'FFJK' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+
+      document.getElementById('boxFFD').classList.toggle('hidden', m !== 'FFD');
+      document.getElementById('boxFFJK').classList.toggle('hidden', m !== 'FFJK');
+
+      document.getElementById('lblModeTitle').innerText = m === 'FFD' ? 'Flip-Flop D (Activació per Flanc Positiu)' : 'Flip-Flop JK (Activació per Flanc Positiu)';
+      document.getElementById('txtDiagramSubtitle').innerText = m === 'FFD' ? 'Flip-Flop D (Model Multisim)' : 'Flip-Flop JK (Model Multisim)';
+      document.getElementById('lblTableMode').innerText = m === 'FFD' ? 'Taula de Veritat Flip-Flop D' : 'Taula de Veritat Flip-Flop JK';
+
+      updateUI();
+    }
+
+    function toggleInput(k) {
+      if (k === 'D') inD = inD === 0 ? 1 : 0;
+      if (k === 'J') inJ = inJ === 0 ? 1 : 0;
+      if (k === 'K') inK = inK === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function triggerClockPulse() {
+      // Simula un flanc de pujada 0 -> 1 i posterior tornada a 0
+      clkValue = 1;
+      evaluateFlipFlop();
+      updateUI();
+
+      setTimeout(() => {
+        clkValue = 0;
+        updateUI();
+      }, 300);
+    }
+
+    function toggleAutoClock() {
+      if (autoClockTimer) {
+        clearInterval(autoClockTimer);
+        autoClockTimer = null;
+        document.getElementById('lblAutoCLK').innerText = 'Rellotge Auto (OFF)';
+        document.getElementById('iconAutoCLK').className = 'fa-solid fa-play';
+        document.getElementById('btnAutoCLK').className = 'p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex items-center justify-center gap-2 hover:text-white transition';
+      } else {
+        document.getElementById('lblAutoCLK').innerText = 'Rellotge Auto (ON)';
+        document.getElementById('iconAutoCLK').className = 'fa-solid fa-pause';
+        document.getElementById('btnAutoCLK').className = 'p-3 rounded-xl border bg-emerald-600/20 text-emerald-300 border-emerald-500 font-mono text-xs font-bold flex items-center justify-center gap-2 transition';
+        autoClockTimer = setInterval(() => {
+          triggerClockPulse();
+        }, 1200);
+      }
+    }
+
+    function evaluateFlipFlop() {
+      if (mode === 'FFD') {
+        stateQ = inD;
+      } else {
+        if (inJ === 0 && inK === 0) {
+          // No canvia (Memòria)
+        } else if (inJ === 1 && inK === 0) {
+          stateQ = 1; // Set
+        } else if (inJ === 0 && inK === 1) {
+          stateQ = 0; // Reset
+        } else if (inJ === 1 && inK === 1) {
+          stateQ = stateQ === 0 ? 1 : 0; // Toggle
+        }
+      }
+    }
+
+    function updateUI() {
+      // Botons d'entrada
+      ['D', 'J', 'K'].forEach(k => {
+        const val = k === 'D' ? inD : (k === 'J' ? inJ : inK);
+        const btn = document.getElementById('btn' + k);
+        const txt = document.getElementById('val' + k);
+        if (btn && txt) {
+          txt.innerText = val;
+          btn.className = val === 1 
+            ? 'p-3 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs font-bold flex justify-between items-center'
+            : 'p-3 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold flex justify-between items-center';
+        }
+      });
+
+      // Indicador de sortida
+      const notQ = stateQ === 0 ? 1 : 0;
+      document.getElementById('txtStateLabel').innerText = `Q = ${stateQ} | ~Q = ${notQ}`;
+      
+      const led = document.getElementById('ledIndicator');
+      if (stateQ === 1) {
+        led.className = 'w-8 h-8 rounded-full bg-red-500 border-2 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.8)] transition-all duration-200';
+      } else {
+        led.className = 'w-8 h-8 rounded-full bg-slate-950 border-2 border-slate-700 shadow-inner transition-all duration-200';
+      }
+
+      renderTruthTable();
+      drawCircuit();
+    }
+
+    function renderTruthTable() {
+      const thead = document.getElementById('truthHead');
+      const tbody = document.getElementById('truthBody');
+
+      if (mode === 'FFD') {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800">Entrada D</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">Estat Següent (Q+)</th>
+          <th class="py-1.5 px-2 text-slate-400">Descripció Operativa</th>
+        </tr>`;
+
+        const rows = [
+          { d: 0, qNext: 0, desc: 'Posada a 0 (Reset) en el flanc de CLK' },
+          { d: 1, qNext: 1, desc: 'Posada a 1 (Set) en el flanc de CLK' }
+        ];
+
+        let html = '';
+        rows.forEach(r => {
+          const isCurrent = r.d === inD;
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+          html += `<tr class="border-b border-slate-800/60 ${rowBg}">
+            <td class="py-1.5 px-2 border-r border-slate-800">${r.d}</td>
+            <td class="py-1.5 px-2 border-r border-slate-800 text-emerald-400 font-bold">${r.qNext}</td>
+            <td class="py-1.5 px-2 text-slate-400 text-left">${r.desc}</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+
+      } else {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800">J</th>
+          <th class="py-1.5 px-2 border-r border-slate-800">K</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">Estat Següent (Q+)</th>
+          <th class="py-1.5 px-2 text-slate-400">Mode d'Operació</th>
+        </tr>`;
+
+        const rows = [
+          { j: 0, k: 0, qNext: 'Q (Sense canvi)', desc: 'Memòria (Conserva estat anterior)' },
+          { j: 1, k: 0, qNext: '1', desc: 'Set (Ajust a 1)' },
+          { j: 0, k: 1, qNext: '0', desc: 'Reset (Posada a 0)' },
+          { j: 1, k: 1, qNext: '~Q (Basculació)', desc: 'Toggle (Inverteix estat anterior)' }
+        ];
+
+        let html = '';
+        rows.forEach(r => {
+          const isCurrent = r.j === inJ && r.k === inK;
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+          html += `<tr class="border-b border-slate-800/60 ${rowBg}">
+            <td class="py-1.5 px-2 border-r border-slate-800">${r.j}</td>
+            <td class="py-1.5 px-2 border-r border-slate-800">${r.k}</td>
+            <td class="py-1.5 px-2 border-r border-slate-800 text-emerald-400 font-bold">${r.qNext}</td>
+            <td class="py-1.5 px-2 text-slate-400 text-left">${r.desc}</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+      }
+    }
+
+    function drawCircuit() {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const colorCLK = clkValue === 1 ? '#f59e0b' : '#64748b';
+
+      if (mode === 'FFD') {
+        const colorD = inD === 1 ? '#10b981' : '#64748b';
+
+        // Línies d'Entrada D i CLK
+        drawWireHV([{x:60, y:70}, {x:250, y:70}], colorD, 'D = ' + inD);
+        drawWireHV([{x:60, y:170}, {x:250, y:170}], colorCLK, 'CLK = ' + clkValue);
+
+        // Caixa del Flip-Flop D
+        ctx.strokeStyle = '#38bdf8'; ctx.fillStyle = '#0f172a'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.roundRect(250, 40, 160, 170, 12); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 16px font-mono'; ctx.textAlign = 'center';
+        ctx.fillText('FF D', 330, 75);
+
+        // Triangle de Flanc Positiu al CLK
+        ctx.beginPath();
+        ctx.moveTo(250, 160); ctx.lineTo(265, 170); ctx.lineTo(250, 180);
+        ctx.strokeStyle = '#38bdf8'; ctx.stroke();
+
+        // Pin Labels
+        ctx.font = 'bold 11px monospace'; ctx.fillStyle = '#cbd5e1';
+        ctx.textAlign = 'left';
+        ctx.fillText('D', 260, 74);
+        ctx.fillText('CLK', 270, 174);
+
+        ctx.textAlign = 'right';
+        ctx.fillText('Q', 400, 94);
+        ctx.fillText('~Q', 400, 154);
+
+        // Sortida Q i Indicador LED
+        const colorQ = stateQ === 1 ? '#ef4444' : '#64748b';
+        drawWireHV([{x:410, y:90}, {x:540, y:90}], colorQ, 'Q = ' + stateQ, true);
+
+        // Dibuix de la Llàntia / LED X1
+        ctx.beginPath(); ctx.arc(560, 90, 16, 0, 2 * Math.PI);
+        ctx.fillStyle = stateQ === 1 ? '#ef4444' : '#020617';
+        ctx.strokeStyle = stateQ === 1 ? '#fca5a5' : '#475569';
+        ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('X1', 560, 94);
+
+      } else {
+        // Mode Flip-Flop JK
+        const colorJ = inJ === 1 ? '#10b981' : '#64748b';
+        const colorK = inK === 1 ? '#10b981' : '#64748b';
+
+        drawWireHV([{x:60, y:65}, {x:250, y:65}], colorJ, 'J = ' + inJ);
+        drawWireHV([{x:60, y:125}, {x:250, y:125}], colorCLK, 'CLK = ' + clkValue);
+        drawWireHV([{x:60, y:185}, {x:250, y:185}], colorK, 'K = ' + inK);
+
+        // Caixa del Flip-Flop JK
+        ctx.strokeStyle = '#38bdf8'; ctx.fillStyle = '#0f172a'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.roundRect(250, 40, 160, 170, 12); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 16px font-mono'; ctx.textAlign = 'center';
+        ctx.fillText('FF JK', 330, 75);
+
+        // Triangle CLK
+        ctx.beginPath();
+        ctx.moveTo(250, 115); ctx.lineTo(265, 125); ctx.lineTo(250, 135);
+        ctx.strokeStyle = '#38bdf8'; ctx.stroke();
+
+        // Pin Labels
+        ctx.font = 'bold 11px monospace'; ctx.fillStyle = '#cbd5e1';
+        ctx.textAlign = 'left';
+        ctx.fillText('J', 260, 69);
+        ctx.fillText('CLK', 270, 129);
+        ctx.fillText('K', 260, 189);
+
+        ctx.textAlign = 'right';
+        ctx.fillText('Q', 400, 89);
+        ctx.fillText('~Q', 400, 169);
+
+        // Sortida Q i Indicador LED
+        const colorQ = stateQ === 1 ? '#ef4444' : '#64748b';
+        drawWireHV([{x:410, y:85}, {x:540, y:85}], colorQ, 'S = ' + stateQ, true);
+
+        // Dibuix de la Llàntia / LED X1
+        ctx.beginPath(); ctx.arc(560, 85, 16, 0, 2 * Math.PI);
+        ctx.fillStyle = stateQ === 1 ? '#ef4444' : '#020617';
+        ctx.strokeStyle = stateQ === 1 ? '#fca5a5' : '#475569';
+        ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('S', 560, 89);
+      }
+    }
+
+    function drawWireHV(points, color, label = '', isOutput = false) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isOutput ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(label, points[0].x - 6, points[0].y + 3);
+      }
+    }
+
+    window.onload = () => {
+      updateUI();
+    };
+  </script>
+</body>
+</html>

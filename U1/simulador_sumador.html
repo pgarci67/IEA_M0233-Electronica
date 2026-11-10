@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Sumadors (Portes ANSI i Connexions Reorganitzades) - Mòdul 0233</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; user-select: none; }
+    canvas { display: block; background-color: #020617; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header corporatiu -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-600/30">
+          <i class="fa-solid fa-microchip text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-blue-400">Simulador de Sumadors (Portes Lògiques ANSI Estàndard)</h1>
+          <p class="text-xs text-slate-400">EE10 Instal·lacions Elèctriques i Automàtiques | Mòdul 0233 (Pablo García Mangas)</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mode -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-300 font-medium font-mono">Model:</span>
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-700">
+          <button id="btnHA" onclick="setMode('HA')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white">Semisumador (ANSI)</button>
+          <button id="btnFA" onclick="setMode('FA')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">Sumador Complet (ANSI)</button>
+          <button id="btn4BIT" onclick="setMode('4BIT')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">Cascada 4 Bits</button>
+          <button id="btn7483" onclick="setMode('7483')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">CI 74LS83</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- Panel Esquerra: Controls d'Entrada -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Panel 1 Bit (HA / FA) -->
+      <div id="panel1Bit" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Entrades del Circuit</span>
+          <span id="lblModeTitle1Bit" class="text-xs font-mono text-amber-400">Semisumador (XOR + AND)</span>
+        </h2>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btn1B_A" onclick="toggle1Bit('A')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Entrada A</span>
+            <span id="val1B_A" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+          </button>
+          <button id="btn1B_B" onclick="toggle1Bit('B')" class="p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Entrada B</span>
+            <span id="val1B_B" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+          </button>
+        </div>
+
+        <div id="boxCin1Bit" class="hidden">
+          <button id="btn1B_Cin" onclick="toggle1Bit('Cin')" class="w-full p-3 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Acarreu d'entrada (Cin)</span>
+            <span id="val1B_Cin" class="px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-bold">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 4 Bits (Cascada / 74LS83) -->
+      <div id="panel4Bit" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl hidden flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-blue-400 border-b border-slate-700 pb-2 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-calculator"></i> Entrades d'Operands de 4 Bits</span>
+          <span id="lblModeTitle4Bit" class="text-xs font-mono text-amber-400">4 Bits en Cascada</span>
+        </h2>
+
+        <!-- Operand A -->
+        <div>
+          <div class="flex justify-between text-xs text-slate-400 mb-1 font-mono">
+            <span>Operand A (A3 A2 A1 A0):</span>
+            <span id="lblDecA" class="text-amber-300 font-bold">Valor Decimal = 0</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="toggle4Bit('A', 3)" id="btnA3" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>A3 (MSB)</span><span id="valA3" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('A', 2)" id="btnA2" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>A2</span><span id="valA2" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('A', 1)" id="btnA1" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>A1</span><span id="valA1" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('A', 0)" id="btnA0" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>A0 (LSB)</span><span id="valA0" class="font-bold text-slate-200">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Operand B -->
+        <div>
+          <div class="flex justify-between text-xs text-slate-400 mb-1 font-mono">
+            <span>Operand B (B3 B2 B1 B0):</span>
+            <span id="lblDecB" class="text-amber-300 font-bold">Valor Decimal = 0</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="toggle4Bit('B', 3)" id="btnB3" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>B3 (MSB)</span><span id="valB3" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('B', 2)" id="btnB2" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>B2</span><span id="valB2" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('B', 1)" id="btnB1" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>B1</span><span id="valB1" class="font-bold text-slate-200">0</span>
+            </button>
+            <button onclick="toggle4Bit('B', 0)" id="btnB0" class="p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center">
+              <span>B0 (LSB)</span><span id="valB0" class="font-bold text-slate-200">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cin Inicial -->
+        <div>
+          <button id="btn4B_Cin" onclick="toggleCin4Bit()" class="w-full p-2.5 rounded-xl border bg-slate-950 border-slate-700 text-slate-400 font-mono text-xs font-bold flex justify-between items-center">
+            <span>Acarreu Inicial (Cin / C0)</span>
+            <span id="val4B_Cin" class="px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-bold">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resultat de la Suma -->
+      <div id="outputSummaryBox" class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Resultat Operatiu:</div>
+          <div id="txtResultDec" class="text-xl font-extrabold text-emerald-400 font-mono">0 + 0 = 0 (Decimal)</div>
+        </div>
+        <div class="flex flex-col items-end gap-1 font-mono text-xs">
+          <span id="badgeSumBits" class="px-3 py-1 rounded-lg bg-slate-950 border border-slate-700 text-emerald-300 font-bold">S = 0</span>
+          <span id="badgeCarry" class="px-3 py-1 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-bold">Carry = 0</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Dreta: Circuit i Taula -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Esquema del Circuit -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-blue-400"></i> Esquema de Portes Lògiques ANSI</span>
+          <span class="text-xs font-mono text-amber-400 font-bold" id="txtDiagramSubtitle">Semisumador (S = A ⊕ B, C = A · B)</span>
+        </h2>
+
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex justify-center items-center">
+          <canvas id="circuitCanvas" width="650" height="280" class="w-full h-auto"></canvas>
+        </div>
+      </div>
+
+      <!-- Taula de Veritat -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-xl flex-1">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-table text-sky-400"></i> Taula de Veritat Operativa</span>
+          <span class="text-xs font-mono text-emerald-400" id="lblTableMode">Taula del Semisumador</span>
+        </h2>
+
+        <div class="overflow-y-auto max-h-[190px] rounded-xl border border-slate-700" id="tableContainer">
+          <table class="w-full text-center text-xs font-mono">
+            <thead id="truthHead" class="bg-slate-950 text-blue-400 uppercase sticky top-0 border-b border-slate-700 font-bold">
+              <!-- JS -->
+            </thead>
+            <tbody id="truthBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    <p>Material Didàctic Adaptat per a CFGM Mòdul 0233 Electrònica | Llicència CC BY-SA 4.0</p>
+  </footer>
+
+  <script>
+    let mode = 'HA';
+
+    let inputs1B = { A: 0, B: 0, Cin: 0 };
+    let operandA = [0, 0, 0, 0];
+    let operandB = [0, 0, 0, 0];
+    let cin4B = 0;
+
+    const cvs = document.getElementById('circuitCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function setMode(m) {
+      mode = m;
+      ['HA', 'FA', '4BIT', '7483'].forEach(k => {
+        const btn = document.getElementById('btn' + k);
+        btn.className = k === m ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-blue-600 text-white' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      });
+
+      if (m === 'HA' || m === 'FA') {
+        document.getElementById('panel1Bit').classList.remove('hidden');
+        document.getElementById('panel4Bit').classList.add('hidden');
+        document.getElementById('boxCin1Bit').classList.toggle('hidden', m === 'HA');
+        document.getElementById('lblModeTitle1Bit').innerText = m === 'HA' ? 'Semisumador (Portes ANSI XOR + AND)' : 'Sumador Complet (2 HA + OR)';
+        document.getElementById('txtDiagramSubtitle').innerText = m === 'HA' ? 'Semisumador (S = A ⊕ B, C = A · B)' : 'Sumador Complet (2 XOR, 2 AND, 1 OR)';
+        document.getElementById('lblTableMode').innerText = m === 'HA' ? 'Taula de Veritat Semisumador' : 'Taula de Veritat Sumador Complet';
+      } else {
+        document.getElementById('panel1Bit').classList.add('hidden');
+        document.getElementById('panel4Bit').classList.remove('hidden');
+        document.getElementById('lblModeTitle4Bit').innerText = m === '4BIT' ? 'Sumador de 4 Bits en Cascada' : 'CI 74LS83 (4 Bits Integrat)';
+        document.getElementById('txtDiagramSubtitle').innerText = m === '4BIT' ? '4 Etapes de Sumadors en Cascada' : 'Esquema de Pins del CI 74LS83';
+        document.getElementById('lblTableMode').innerText = m === '4BIT' ? 'Operació en Cascada de 4 Bits' : 'Full de Dades 74LS83';
+      }
+      updateUI();
+    }
+
+    function toggle1Bit(k) {
+      inputs1B[k] = inputs1B[k] === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function toggle4Bit(op, bitIdx) {
+      if (op === 'A') operandA[bitIdx] = operandA[bitIdx] === 0 ? 1 : 0;
+      else operandB[bitIdx] = operandB[bitIdx] === 0 ? 1 : 0;
+      updateUI();
+    }
+    function toggleCin4Bit() {
+      cin4B = cin4B === 0 ? 1 : 0;
+      updateUI();
+    }
+
+    function updateUI() {
+      if (mode === 'HA' || mode === 'FA') {
+        ['A', 'B', 'Cin'].forEach(k => {
+          const v = inputs1B[k];
+          document.getElementById('val1B_' + k).innerText = v;
+          document.getElementById('btn1B_' + k).className = v === 1 
+            ? 'p-3 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs font-bold flex justify-between items-center'
+            : 'p-3 rounded-xl border bg-slate-950 text-slate-400 border-slate-700 font-mono text-xs font-bold flex justify-between items-center';
+        });
+
+        let S = 0, C = 0;
+        if (mode === 'HA') {
+          S = inputs1B.A ^ inputs1B.B;
+          C = inputs1B.A & inputs1B.B;
+          document.getElementById('txtResultDec').innerText = `${inputs1B.A} + ${inputs1B.B} = ${C * 2 + S}`;
+        } else {
+          const sumVal = inputs1B.A + inputs1B.B + inputs1B.Cin;
+          S = sumVal % 2;
+          C = Math.floor(sumVal / 2);
+          document.getElementById('txtResultDec').innerText = `${inputs1B.A} + ${inputs1B.B} + Cin(${inputs1B.Cin}) = ${sumVal}`;
+        }
+
+        document.getElementById('badgeSumBits').innerText = `S = ${S}`;
+        document.getElementById('badgeCarry').innerText = `Carry = ${C}`;
+
+        renderTruthTable1Bit(S, C);
+        drawCircuit1Bit(S, C);
+
+      } else {
+        for (let i = 0; i < 4; i++) {
+          const vA = operandA[i];
+          const vB = operandB[i];
+          document.getElementById('valA' + i).innerText = vA;
+          document.getElementById('valB' + i).innerText = vB;
+          document.getElementById('btnA' + i).className = vA === 1 ? 'p-2 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs flex flex-col items-center' : 'p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center';
+          document.getElementById('btnB' + i).className = vB === 1 ? 'p-2 rounded-xl border bg-blue-600/20 text-blue-300 border-blue-500 font-mono text-xs flex flex-col items-center' : 'p-2 rounded-xl border bg-slate-950 border-slate-700 font-mono text-xs flex flex-col items-center';
+        }
+
+        document.getElementById('val4B_Cin').innerText = cin4B;
+
+        const decA = operandA[0] * 1 + operandA[1] * 2 + operandA[2] * 4 + operandA[3] * 8;
+        const decB = operandB[0] * 1 + operandB[1] * 2 + operandB[2] * 4 + operandB[3] * 8;
+        document.getElementById('lblDecA').innerText = `Valor Decimal = ${decA}`;
+        document.getElementById('lblDecB').innerText = `Valor Decimal = ${decB}`;
+
+        const totalSum = decA + decB + cin4B;
+        document.getElementById('txtResultDec').innerText = `${decA} + ${decB} ${cin4B ? '+ 1(Cin)' : ''} = ${totalSum}`;
+
+        let carries = [cin4B];
+        let sumBits = [];
+        for (let i = 0; i < 4; i++) {
+          const s = operandA[i] ^ operandB[i] ^ carries[i];
+          const cNext = (operandA[i] & operandB[i]) | (carries[i] & (operandA[i] ^ operandB[i]));
+          sumBits.push(s);
+          carries.push(cNext);
+        }
+
+        document.getElementById('badgeSumBits').innerText = `S3..S0 = ${sumBits[3]}${sumBits[2]}${sumBits[1]}${sumBits[0]}`;
+        document.getElementById('badgeCarry').innerText = `C4 = ${carries[4]}`;
+
+        renderTable4Bit(decA, decB, totalSum, sumBits, carries);
+        drawCircuit4Bit(sumBits, carries);
+      }
+    }
+
+    function renderTruthTable1Bit(currS, currC) {
+      const thead = document.getElementById('truthHead');
+      const tbody = document.getElementById('truthBody');
+
+      if (mode === 'HA') {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800">A</th>
+          <th class="py-1.5 px-2 border-r border-slate-800">B</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">S (XOR)</th>
+          <th class="py-1.5 px-2 text-amber-400">C (AND)</th>
+        </tr>`;
+
+        const rows = [
+          { a:0, b:0, s:0, c:0 }, { a:0, b:1, s:1, c:0 },
+          { a:1, b:0, s:1, c:0 }, { a:1, b:1, s:0, c:1 }
+        ];
+
+        let html = '';
+        rows.forEach(r => {
+          const isCurrent = r.a === inputs1B.A && r.b === inputs1B.B;
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+          html += `<tr class="border-b border-slate-800/60 ${rowBg}">
+            <td class="py-1 px-2 border-r border-slate-800">${r.a}</td>
+            <td class="py-1 px-2 border-r border-slate-800">${r.b}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-emerald-400 font-bold">${r.s}</td>
+            <td class="py-1 px-2 text-amber-400 font-bold">${r.c}</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+
+      } else {
+        thead.innerHTML = `<tr>
+          <th class="py-1.5 px-2 border-r border-slate-800">A</th>
+          <th class="py-1.5 px-2 border-r border-slate-800">B</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-indigo-400">Cin</th>
+          <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">S (Suma)</th>
+          <th class="py-1.5 px-2 text-amber-400">Cout</th>
+        </tr>`;
+
+        let html = '';
+        for (let i = 0; i < 8; i++) {
+          const a = (i & 4) >> 2;
+          const b = (i & 2) >> 1;
+          const cin = i & 1;
+          const s = a ^ b ^ cin;
+          const cout = (a & b) | (cin & (a ^ b));
+
+          const isCurrent = a === inputs1B.A && b === inputs1B.B && cin === inputs1B.Cin;
+          const rowBg = isCurrent ? 'bg-amber-500/20 font-bold text-amber-300 ring-1 ring-amber-400/50' : 'hover:bg-slate-800/40 text-slate-300';
+
+          html += `<tr class="border-b border-slate-800/60 ${rowBg}">
+            <td class="py-1 px-2 border-r border-slate-800">${a}</td>
+            <td class="py-1 px-2 border-r border-slate-800">${b}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-indigo-400">${cin}</td>
+            <td class="py-1 px-2 border-r border-slate-800 text-emerald-400 font-bold">${s}</td>
+            <td class="py-1 px-2 text-amber-400 font-bold">${cout}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      }
+    }
+
+    function renderTable4Bit(decA, decB, totalSum, sumBits, carries) {
+      const thead = document.getElementById('truthHead');
+      const tbody = document.getElementById('truthBody');
+
+      thead.innerHTML = `<tr>
+        <th class="py-1.5 px-2 border-r border-slate-800">Etapa / Bit</th>
+        <th class="py-1.5 px-2 border-r border-slate-800">A[i]</th>
+        <th class="py-1.5 px-2 border-r border-slate-800">B[i]</th>
+        <th class="py-1.5 px-2 border-r border-slate-800 text-indigo-400">Cin[i]</th>
+        <th class="py-1.5 px-2 border-r border-slate-800 text-emerald-400">S[i]</th>
+        <th class="py-1.5 px-2 text-amber-400">Cout[i]</th>
+      </tr>`;
+
+      let html = '';
+      for (let i = 0; i < 4; i++) {
+        html += `<tr class="border-b border-slate-800/60 hover:bg-slate-800/40">
+          <td class="py-1 px-2 border-r border-slate-800 font-bold text-blue-400">Bit ${i} (${1<<i})</td>
+          <td class="py-1 px-2 border-r border-slate-800">${operandA[i]}</td>
+          <td class="py-1 px-2 border-r border-slate-800">${operandB[i]}</td>
+          <td class="py-1 px-2 border-r border-slate-800 text-indigo-400">${carries[i]}</td>
+          <td class="py-1 px-2 border-r border-slate-800 text-emerald-400 font-bold">${sumBits[i]}</td>
+          <td class="py-1 px-2 text-amber-400 font-bold">${carries[i+1]}</td>
+        </tr>`;
+      }
+      tbody.innerHTML = html;
+    }
+
+    // --- DIBUIX DE PORTES LÒGIQUES SEGONS LA NORMATIVA ANSI/IEEE ---
+    // Les entrades de la porta es troben exactament a: (x, y + 10) i (x, y + 30).
+    // La sortida es troba exactament a: (x + 45, y + 20).
+    function drawAnsiAND(x, y, active) {
+      ctx.strokeStyle = active ? '#38bdf8' : '#475569';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 25, y);
+      ctx.arc(x + 25, y + 20, 20, -Math.PI / 2, Math.PI / 2, false);
+      ctx.lineTo(x, y + 40);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('AND', x + 18, y + 24);
+    }
+
+    function drawAnsiOR(x, y, active) {
+      ctx.strokeStyle = active ? '#38bdf8' : '#475569';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + 20, y, x + 45, y + 20);
+      ctx.quadraticCurveTo(x + 20, y + 40, x, y + 40);
+      ctx.quadraticCurveTo(x + 10, y + 20, x, y);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('OR', x + 22, y + 24);
+    }
+
+    function drawAnsiXOR(x, y, active) {
+      ctx.strokeStyle = active ? '#38bdf8' : '#475569';
+      ctx.fillStyle = '#0f172a';
+      ctx.lineWidth = 2.5;
+
+      // Arc d'entrada de la porta XOR
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y);
+      ctx.quadraticCurveTo(x + 4, y + 20, x - 6, y + 40);
+      ctx.stroke();
+
+      // Cos de la porta OR
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + 20, y, x + 45, y + 20);
+      ctx.quadraticCurveTo(x + 20, y + 40, x, y + 40);
+      ctx.quadraticCurveTo(x + 10, y + 20, x, y);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('XOR', x + 22, y + 24);
+    }
+
+    function drawCircuit1Bit(S, C) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const A = inputs1B.A;
+      const B = inputs1B.B;
+
+      if (mode === 'HA') {
+        // --- SEMISUMADOR AMB PORTES ANSI ---
+        const colorA = A === 1 ? '#10b981' : '#64748b';
+        const colorB = B === 1 ? '#10b981' : '#64748b';
+
+        // Línies principals d'entrada A i B
+        drawWireHV([{x:40, y:70}, {x:240, y:70}], colorA, 'A = ' + A);
+        drawWireHV([{x:40, y:170}, {x:240, y:170}], colorB, 'B = ' + B);
+
+        // Connexions cap a la pin superior de XOR (240, 70) i pin inferior de XOR (240, 90)
+        drawWireHV([{x:120, y:70}, {x:120, y:150}, {x:240, y:150}], colorA); // A -> AND Pin 1 (240, 150)
+        drawWireHV([{x:160, y:170}, {x:160, y:90}, {x:240, y:90}], colorB);  // B -> XOR Pin 2 (240, 90)
+        drawWireHV([{x:160, y:170}, {x:240, y:170}], colorB);               // B -> AND Pin 2 (240, 170)
+
+        // Dibuix de les portes lògiques ANSI
+        drawAnsiXOR(240, 60, true);  // Entrades a y=70 i y=90, Sortida a y=80
+        drawAnsiAND(240, 140, true); // Entrades a y=150 i y=170, Sortida a y=160
+
+        // Sortides
+        drawWireHV([{x:285, y:80}, {x:560, y:80}], S === 1 ? '#10b981' : '#64748b', 'S = ' + S, true);
+        drawWireHV([{x:285, y:160}, {x:560, y:160}], C === 1 ? '#fbbf24' : '#64748b', 'C = ' + C, true);
+
+      } else {
+        // --- SUMADOR COMPLET AMB PORTES ANSI ---
+        const Cin = inputs1B.Cin;
+        const colorA = A === 1 ? '#10b981' : '#64748b';
+        const colorB = B === 1 ? '#10b981' : '#64748b';
+        const colorCin = Cin === 1 ? '#818cf8' : '#64748b';
+
+        const s1 = A ^ B; // Suma parcial HA1
+        const c1 = A & B; // Carry parcial HA1
+        const colorS1 = s1 === 1 ? '#10b981' : '#64748b';
+        const colorC1 = c1 === 1 ? '#fbbf24' : '#64748b';
+
+        const c2 = Cin & s1; // Carry parcial HA2
+        const colorC2 = c2 === 1 ? '#fbbf24' : '#64748b';
+
+        // --- ETAPA 1 (HA1): XOR1 (140, 40) i AND1 (140, 100) ---
+        // Entrades A (y=50) i B (y=70) a XOR1
+        drawWireHV([{x:40, y:50}, {x:140, y:50}], colorA, 'A = ' + A);
+        drawWireHV([{x:40, y:70}, {x:140, y:70}], colorB, 'B = ' + B);
+
+        // Connexions cap a AND1 (entrades a y=110 i y=130)
+        drawWireHV([{x:80, y:50}, {x:80, y:110}, {x:140, y:110}], colorA);
+        drawWireHV([{x:100, y:70}, {x:100, y:130}, {x:140, y:130}], colorB);
+
+        drawAnsiXOR(140, 40, true);  // Sortida y=60
+        drawAnsiAND(140, 100, true); // Sortida y=120
+
+        // --- ETAPA 2 (HA2): XOR2 (320, 40) i AND2 (320, 140) ---
+        // Suma parcial s1 (y=60) entra a XOR2 (pin y=50) i a AND2 (pin y=150)
+        drawWireHV([{x:185, y:60}, {x:320, y:60}], colorS1);
+        drawWireHV([{x:250, y:60}, {x:250, y:150}, {x:320, y:150}], colorS1);
+
+        // Entrada Cin (y=210) entra a XOR2 (pin y=70) i a AND2 (pin y=170)
+        drawWireHV([{x:40, y:210}, {x:280, y:210}, {x:280, y:80}, {x:320, y:80}], colorCin, 'Cin = ' + Cin);
+        drawWireHV([{x:280, y:210}, {x:280, y:170}, {x:320, y:170}], colorCin);
+
+        drawAnsiXOR(320, 40, true);  // Sortida y=60
+        drawAnsiAND(320, 140, true); // Sortida y=160
+
+        // --- ETAPA 3: PORTA OR (480, 110) ---
+        // Acarreu C1 (y=120) entra al pin 1 (y=120) de OR
+        // Acarreu C2 (y=160) entra al pin 2 (y=140) de OR
+        drawWireHV([{x:185, y:120}, {x:480, y:120}], colorC1);
+        drawWireHV([{x:365, y:160}, {x:440, y:160}, {x:440, y:140}, {x:480, y:140}], colorC2);
+
+        drawAnsiOR(480, 110, true); // Sortida a y=130
+
+        // Sortides Final S i Cout
+        drawWireHV([{x:365, y:60}, {x:580, y:60}], S === 1 ? '#10b981' : '#64748b', 'S = ' + S, true);
+        drawWireHV([{x:525, y:130}, {x:610, y:130}], C === 1 ? '#fbbf24' : '#64748b', 'Cout = ' + C, true);
+      }
+    }
+
+    function drawCircuit4Bit(sumBits, carries) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      if (mode === '4BIT') {
+        for (let i = 0; i < 4; i++) {
+          const x = 50 + (3 - i) * 140;
+          ctx.strokeStyle = '#38bdf8'; ctx.fillStyle = '#0f172a'; ctx.lineWidth = 2;
+          ctx.strokeRect(x, 40, 100, 160); ctx.fillRect(x, 40, 100, 160);
+
+          ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`FA Bit ${i}`, x + 50, 65);
+
+          const colorA = operandA[i] === 1 ? '#10b981' : '#475569';
+          const colorB = operandB[i] === 1 ? '#10b981' : '#475569';
+          drawWireHV([{x: x + 20, y: 10}, {x: x + 20, y: 40}], colorA, `A${i}`);
+          drawWireHV([{x: x + 60, y: 10}, {x: x + 60, y: 40}], colorB, `B${i}`);
+
+          const colorS = sumBits[i] === 1 ? '#10b981' : '#475569';
+          drawWireHV([{x: x + 50, y: 200}, {x: x + 50, y: 240}], colorS, `S${i}`, true);
+
+          const colorC = carries[i+1] === 1 ? '#fbbf24' : '#475569';
+          if (i < 3) {
+            drawWireHV([{x: x, y: 140}, {x: x - 40, y: 140}], colorC);
+          } else {
+            drawWireHV([{x: x, y: 140}, {x: 20, y: 140}], colorC, 'C4', true);
+          }
+        }
+      } else {
+        ctx.strokeStyle = '#38bdf8'; ctx.fillStyle = '#0f172a'; ctx.lineWidth = 2.5;
+        ctx.strokeRect(180, 30, 280, 190); ctx.fillRect(180, 30, 280, 190);
+
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('CI 74LS83N', 320, 65);
+        ctx.font = '11px sans-serif'; ctx.fillStyle = '#94a3b8';
+        ctx.fillText('Sumador Binari de 4 Bits amb Acarreu Ràpid', 320, 85);
+
+        drawWireHV([{x:50, y:110}, {x:180, y:110}], '#10b981', 'A1..A4, B1..B4');
+        drawWireHV([{x:50, y:160}, {x:180, y:160}], cin4B === 1 ? '#fbbf24' : '#64748b', 'C0 (Cin) = ' + cin4B);
+
+        const sumStr = `Σ4..Σ1 = ${sumBits[3]}${sumBits[2]}${sumBits[1]}${sumBits[0]}`;
+        drawWireHV([{x:460, y:110}, {x:600, y:110}], '#10b981', sumStr, true);
+        drawWireHV([{x:460, y:160}, {x:600, y:160}], carries[4] === 1 ? '#fbbf24' : '#64748b', 'C4 = ' + carries[4], true);
+      }
+    }
+
+    function drawWireHV(points, color, label = '', isOutput = false) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isOutput ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px monospace';
+        if (points[0].y < 30) {
+          ctx.textAlign = 'center';
+          ctx.fillText(label, points[0].x, points[0].y - 3);
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillText(label, points[0].x - 6, points[0].y + 3);
+        }
+      }
+    }
+
+    window.onload = () => {
+      updateUI();
+    };
+  </script>
+</body>
+</html>
