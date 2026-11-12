@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador del Transistor BJT i Polarització - Mòdul 0233</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-light: #3b82f6;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; line-height: 1.5; }
+
+    .container { max-width: 1050px; margin: 0 auto; }
+    
+    header { background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); color: white; padding: 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center; }
+    header h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    header p { opacity: 0.9; font-size: 0.95rem; }
+
+    .mode-selector { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .mode-btn { flex: 1; min-width: 240px; padding: 0.85rem; border: 2px solid var(--primary); background: var(--surface); color: var(--primary); font-weight: bold; border-radius: var(--radius); cursor: pointer; text-align: center; font-size: 0.95rem; transition: all 0.2s; }
+    .mode-btn.active { background: var(--primary); color: white; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    h2 { color: var(--primary); font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 2px solid var(--bg); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+    .control-group { display: flex; flex-direction: column; gap: 0.3rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .control-group label { font-size: 0.82rem; font-weight: 700; color: #334155; display: flex; justify-content: space-between; }
+    .control-group input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+    .control-group input[type="number"] { padding: 0.4rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+
+    .visual-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .canvas-container { position: relative; background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid #1e293b; }
+    canvas { display: block; width: 100%; height: auto; }
+
+    /* Etiqueta de Zona de Funcionament */
+    .zone-badge { padding: 0.35rem 0.9rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+    .zone-cutoff { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .zone-active { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .zone-sat { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+
+    .readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin-top: 1.2rem; }
+    .readout-card { background: #f1f5f9; padding: 0.8rem; border-radius: 8px; border-left: 4px solid var(--primary-light); }
+    .readout-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .readout-card .value { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 0.15rem; }
+
+    .math-box { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #3b82f6; padding: 1rem 1.2rem; border-radius: 8px; margin-top: 1.2rem; font-size: 0.92rem; }
+    .math-box h4 { color: var(--primary); margin-bottom: 0.4rem; }
+    .math-box code { background: #e2e8f0; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; font-weight: 600; color: #0f172a; }
+
+    footer { text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Simulador Interactiu: El Transistor BJT (NPN)</h1>
+    <p>Mòdul 0233 Electrònica — Zones de funcionament, polarització i recta de càrrega</p>
+  </header>
+
+  <div class="mode-selector">
+    <button class="mode-btn active" id="btn-fixed" onclick="setMode('fixed')">1. Zones de Funcionament (Tall / Activa / Saturació)</button>
+    <button class="mode-btn" id="btn-univ" onclick="setMode('univ')">2. Polarització Universal i Recta de Càrrega (Punt Q)</button>
+  </div>
+
+  <!-- =========================================================
+       MODE 1: POLARITZACIÓ FIXA (ZONES DE FUNCIONAMENT)
+       ========================================================= -->
+  <div id="section-fixed" class="card">
+    <h2>
+      <span>Circuit en Emissor Comú (EC) — Control per Base</span>
+      <span id="fixed-zone-badge" class="zone-badge zone-active">Zona Activa</span>
+    </h2>
+
+    <div class="controls-grid">
+      <div class="control-group">
+        <label for="f-vbb">Tensió Base (VBB): <span id="lbl-f-vbb">3.0 V</span></label>
+        <input type="range" id="f-vbb" min="0" max="12" step="0.1" value="3.0" oninput="updateFixed()">
+      </div>
+      <div class="control-group">
+        <label for="f-rb">Resistència Base (RB): <span id="lbl-f-rb">47 kΩ</span></label>
+        <input type="range" id="f-rb" min="5" max="100" step="1" value="47" oninput="updateFixed()">
+      </div>
+      <div class="control-group">
+        <label for="f-vcc">Alimentació (VCC): <span id="lbl-f-vcc">12 V</span></label>
+        <input type="range" id="f-vcc" min="5" max="24" step="1" value="12" oninput="updateFixed()">
+      </div>
+      <div class="control-group">
+        <label for="f-rc">Resistència Col·lector (RC): <span id="lbl-f-rc">1.0 kΩ</span></label>
+        <input type="range" id="f-rc" min="0.2" max="5.0" step="0.1" value="1.0" oninput="updateFixed()">
+      </div>
+      <div class="control-group">
+        <label for="f-beta">Guany (β / hFE): <span id="lbl-f-beta">120</span></label>
+        <input type="range" id="f-beta" min="50" max="300" step="10" value="120" oninput="updateFixed()">
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="canvas-fixed" width="900" height="310"></canvas>
+    </div>
+
+    <div class="readouts">
+      <div class="readout-card">
+        <div class="label">Tensió Base-Emissor (VBE)</div>
+        <div class="value" id="val-f-vbe">0.70 V</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Corrent de Base (IB)</div>
+        <div class="value" id="val-f-ib">48.9 µA</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Corrent de Col·lector (IC)</div>
+        <div class="value" id="val-f-ic">5.87 mA</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Corrent d'Emissor (IE)</div>
+        <div class="value" id="val-f-ie">5.92 mA</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Tensió Col·lector-Emissor (VCE)</div>
+        <div class="value" id="val-f-vce">6.13 V</div>
+      </div>
+    </div>
+
+    <div class="math-box" id="fixed-math-box"></div>
+  </div>
+
+  <!-- =========================================================
+       MODE 2: POLARITZACIÓ UNIVERSAL I RECTA DE CÀRREGA
+       ========================================================= -->
+  <div id="section-univ" class="card" style="display:none;">
+    <h2>
+      <span>Polarització Universal i Recta de Càrrega</span>
+      <span id="univ-zone-badge" class="zone-badge zone-active">Punt Q Centrat</span>
+    </h2>
+
+    <div class="controls-grid">
+      <div class="control-group">
+        <label for="u-pot">Potenciòmetre Base (Ajust Q): <span id="lbl-u-pot">50 %</span></label>
+        <input type="range" id="u-pot" min="5" max="95" step="1" value="31" oninput="updateUniv()">
+      </div>
+      <div class="control-group">
+        <label for="u-vcc">Alimentació (VCC): <span id="lbl-u-vcc">12 V</span></label>
+        <input type="range" id="u-vcc" min="6" max="24" step="1" value="12" oninput="updateUniv()">
+      </div>
+      <div class="control-group">
+        <label for="u-rc">Resistència RC: <span id="lbl-u-rc">1.0 kΩ</span></label>
+        <input type="range" id="u-rc" min="0.5" max="4.7" step="0.1" value="1.0" oninput="updateUniv()">
+      </div>
+      <div class="control-group">
+        <label for="u-re">Resistència RE: <span id="lbl-u-re">0.22 kΩ</span></label>
+        <input type="range" id="u-re" min="0.1" max="1.0" step="0.02" value="0.22" oninput="updateUniv()">
+      </div>
+    </div>
+
+    <div class="visual-grid">
+      <div class="canvas-container">
+        <canvas id="canvas-univ-circuit" width="460" height="330"></canvas>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvas-univ-graph" width="460" height="330"></canvas>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="readout-card">
+        <div class="label">Tensió VCE (Punt Q)</div>
+        <div class="value" id="val-u-vce">6.00 V</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Corrent IC (Punt Q)</div>
+        <div class="value" id="val-u-ic">4.92 mA</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Tall Eix Horitzontal (IC = 0)</div>
+        <div class="value" id="val-u-vce-max">12.00 V</div>
+      </div>
+      <div class="readout-card">
+        <div class="label">Tall Eix Vertical (VCE = 0)</div>
+        <div class="value" id="val-u-ic-max">9.84 mA</div>
+      </div>
+    </div>
+
+    <div class="math-box" id="univ-math-box"></div>
+  </div>
+
+  <footer>
+    <p>Material Educatiu obert sota llicència Creative Commons Reconeixement-CompartirIgual 4.0 Internacional (CC BY-SA 4.0).</p>
+  </footer>
+</div>
+
+<script>
+  let currentMode = 'fixed';
+  let animOffset = 0;
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-fixed').classList.toggle('active', mode === 'fixed');
+    document.getElementById('btn-univ').classList.toggle('active', mode === 'univ');
+    document.getElementById('section-fixed').style.display = mode === 'fixed' ? 'block' : 'none';
+    document.getElementById('section-univ').style.display = mode === 'univ' ? 'block' : 'none';
+  }
+
+  // =========================================================
+  // CÀLCULS I DIBUIX MODE 1: ZONES DE FUNCIONAMENT
+  // =========================================================
+  function calcFixed() {
+    const vbb = parseFloat(document.getElementById('f-vbb').value);
+    const rb_k = parseFloat(document.getElementById('f-rb').value);
+    const vcc = parseFloat(document.getElementById('f-vcc').value);
+    const rc_k = parseFloat(document.getElementById('f-rc').value);
+    const beta = parseFloat(document.getElementById('f-beta').value);
+
+    document.getElementById('lbl-f-vbb').textContent = vbb.toFixed(1) + " V";
+    document.getElementById('lbl-f-rb').textContent = rb_k + " kΩ";
+    document.getElementById('lbl-f-vcc').textContent = vcc + " V";
+    document.getElementById('lbl-f-rc').textContent = rc_k.toFixed(1) + " kΩ";
+    document.getElementById('lbl-f-beta').textContent = beta;
+
+    const rb = rb_k * 1000;
+    const rc = rc_k * 1000;
+    const vbe_on = 0.7;
+    const vce_sat = 0.2;
+
+    let zone = ''; // 'cutoff', 'active', 'sat'
+    let vbe = 0, ib = 0, ic = 0, ie = 0, vce = vcc;
+
+    if (vbb < vbe_on) {
+      // ZONA DE TALL
+      zone = 'cutoff';
+      vbe = vbb;
+      ib = 0;
+      ic = 0;
+      ie = 0;
+      vce = vcc;
+    } else {
+      vbe = vbe_on;
+      ib = (vbb - vbe_on) / rb;
+      const ic_ideal = beta * ib;
+      const ic_sat = (vcc - vce_sat) / rc;
+
+      if (ic_ideal >= ic_sat) {
+        // ZONA DE SATURACIÓ
+        zone = 'sat';
+        ic = ic_sat;
+        vce = vce_sat;
+      } else {
+        // ZONA ACTIVA
+        zone = 'active';
+        ic = ic_ideal;
+        vce = vcc - (ic * rc);
+      }
+      ie = ic + ib;
+    }
+
+    // Actualitzar lectures
+    document.getElementById('val-f-vbe').textContent = vbe.toFixed(2) + " V";
+    document.getElementById('val-f-ib').textContent = (ib * 1e6).toFixed(1) + " µA";
+    document.getElementById('val-f-ic').textContent = (ic * 1000).toFixed(2) + " mA";
+    document.getElementById('val-f-ie').textContent = (ie * 1000).toFixed(2) + " mA";
+    document.getElementById('val-f-vce').textContent = vce.toFixed(2) + " V";
+
+    const badge = document.getElementById('fixed-zone-badge');
+    const mathBox = document.getElementById('fixed-math-box');
+
+    if (zone === 'cutoff') {
+      badge.className = 'zone-badge zone-cutoff';
+      badge.textContent = 'Zona de Tall (Interruptor Obert)';
+      mathBox.innerHTML = `
+        <h4>Estat: ZONA DE TALL (VBE &lt; 0,7 V)</h4>
+        <p>Com que la tensió de base <strong>VBB = ${vbb.toFixed(1)} V</strong> no supera la barrera de potencial de <strong>0,7 V</strong>, no circula corrent per la base (<code>IB = 0 µA</code>).</p>
+        <p>• El transistor es comporta com un <strong>interruptor obert</strong> entre col·lector i emissor: <code>IC = 0 mA</code> i <code>VCE = VCC = ${vcc.toFixed(2)} V</code>.</p>
+      `;
+    } else if (zone === 'active') {
+      badge.className = 'zone-badge zone-active';
+      badge.textContent = 'Zona Activa (Amplificació)';
+      mathBox.innerHTML = `
+        <h4>Estat: ZONA ACTIVA (Amplificació lineal: IC = β · IB)</h4>
+        <p>La unió Base-Emissor està polaritzada directament (<code>VBE = 0,7 V</code>) i el col·lector en inversa (<code>VCE &gt; 0,2 V</code>). El transistor amplifica el corrent de base segons el seu guany <strong>β = ${beta}</strong>.</p>
+        <p>• Corrent de base: <code>IB = (VBB - 0,7 V) / RB = (${vbb.toFixed(1)} - 0,7) / ${rb_k} kΩ = ${(ib*1e6).toFixed(1)} µA</code></p>
+        <p>• Corrent de col·lector: <code>IC = β · IB = ${beta} · ${(ib*1e6).toFixed(1)} µA = ${(ic*1000).toFixed(2)} mA</code> | Tensió sortida: <code>VCE = VCC - IC·RC = ${vce.toFixed(2)} V</code></p>
+      `;
+    } else {
+      badge.className = 'zone-badge zone-sat';
+      badge.textContent = 'Zona de Saturació (Interruptor Tancat)';
+      mathBox.innerHTML = `
+        <h4>Estat: ZONA DE SATURACIÓ (VCE ≈ 0,2 V)</h4>
+        <p>El corrent de base és tan elevat (<code>IB = ${(ib*1e6).toFixed(1)} µA</code>) que el col·lector ja no pot subministrar més corrent perquè tota la tensió VCC cau a la resistència RC.</p>
+        <p>• El transistor actua com un <strong>interruptor tancat</strong>: <code>VCE = 0,20 V</code> i el corrent queda limitat pel circuit extern a <code>IC(sat) = (VCC - 0,2 V) / RC = ${(ic*1000).toFixed(2)} mA</code> (ja no es compleix IC = β · IB).</p>
+      `;
+    }
+
+    return { zone, vbb, rb_k, vcc, rc_k, ib, ic, ie, vce };
+  }
+
+  function updateFixed() {
+    calcFixed();
+  }
+
+  function drawFixedCanvas(data) {
+    const canvas = document.getElementById('canvas-fixed');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const tx = 520, ty = 160; // Centre del transistor
+
+    // Línies del circuit
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 3;
+
+    // Malla Base (Esquerra)
+    ctx.beginPath();
+    ctx.moveTo(150, 260);
+    ctx.lineTo(150, ty);
+    ctx.lineTo(tx - 25, ty);
+    ctx.stroke();
+
+    // Malla Col·lector (Dalt a Baix)
+    ctx.beginPath();
+    ctx.moveTo(tx + 15, 35);
+    ctx.lineTo(tx + 15, ty - 22);
+    ctx.moveTo(tx + 15, ty + 22);
+    ctx.lineTo(tx + 15, 260);
+    ctx.lineTo(150, 260);
+    ctx.stroke();
+
+    // Massa (GND)
+    ctx.beginPath();
+    ctx.moveTo(340, 260); ctx.lineTo(340, 280);
+    ctx.moveTo(325, 280); ctx.lineTo(355, 280);
+    ctx.moveTo(330, 286); ctx.lineTo(350, 286);
+    ctx.stroke();
+
+    // Font VBB
+    ctx.fillStyle = "#1e293b";
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(150, 210, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("VBB", 110, 206);
+    ctx.fillText(data.vbb.toFixed(1) + " V", 110, 223);
+
+    // Resistència RB
+    ctx.fillStyle = "#1e293b";
+    ctx.strokeStyle = "#4ade80";
+    ctx.fillRect(260, ty - 14, 70, 28);
+    ctx.strokeRect(260, ty - 14, 70, 28);
+    ctx.fillStyle = "#4ade80";
+    ctx.fillText(`RB (${data.rb_k} kΩ)`, 295, ty - 22);
+
+    // Alimentació VCC (Dalt)
+    ctx.fillStyle = "#f87171";
+    ctx.beginPath(); ctx.arc(tx + 15, 35, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillText(`+VCC (${data.vcc} V)`, tx + 15, 22);
+
+    // Resistència RC
+    ctx.fillStyle = "#1e293b";
+    ctx.strokeStyle = "#facc15";
+    ctx.fillRect(tx + 1, 60, 28, 60);
+    ctx.strokeRect(tx + 1, 60, 28, 60);
+    ctx.fillStyle = "#facc15";
+    ctx.textAlign = "left";
+    ctx.fillText(`RC (${data.rc_k.toFixed(1)} kΩ)`, tx + 38, 95);
+
+    // Símbol Transistor NPN
+    let tColor = data.zone === 'cutoff' ? '#ef4444' : (data.zone === 'active' ? '#22c55e' : '#f59e0b');
+    ctx.strokeStyle = tColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(tx, ty, 34, 0, Math.PI * 2); ctx.stroke();
+
+    // Barra vertical base
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(tx - 12, ty - 18); ctx.lineTo(tx - 12, ty + 18); ctx.stroke();
+    // Connexió base
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(tx - 34, ty); ctx.lineTo(tx - 12, ty); ctx.stroke();
+    // Col·lector
+    ctx.beginPath(); ctx.moveTo(tx - 12, ty - 8); ctx.lineTo(tx + 15, ty - 22); ctx.stroke();
+    // Emissor amb fletxa
+    ctx.beginPath(); ctx.moveTo(tx - 12, ty + 8); ctx.lineTo(tx + 15, ty + 22); ctx.stroke();
+    // Fletxa NPN
+    ctx.fillStyle = tColor;
+    ctx.beginPath();
+    ctx.moveTo(tx + 15, ty + 22);
+    ctx.lineTo(tx + 3, ty + 21);
+    ctx.lineTo(tx + 8, ty + 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Etiquetes terminals B, C, E
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("B", tx - 45, ty - 8);
+    ctx.fillText("C", tx + 24, ty - 25);
+    ctx.fillText("E", tx + 24, ty + 32);
+
+    // Panell d'analogia d'interruptor / amplificador a la dreta
+    ctx.fillStyle = "#1e293b";
+    ctx.strokeStyle = "#334155";
+    ctx.fillRect(670, 65, 200, 175);
+    ctx.strokeRect(670, 65, 200, 175);
+    ctx.fillStyle = "#94a3b8";
+    ctx.textAlign = "center";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("MODEL EQUIVALENT C - E", 770, 88);
+
+    // Dibuixar interruptor equivalent C-E
+    ctx.strokeStyle = tColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(770, 105); ctx.lineTo(770, 130);
+    ctx.moveTo(770, 180); ctx.lineTo(770, 205);
+    ctx.stroke();
+
+    ctx.fillStyle = tColor;
+    ctx.beginPath(); ctx.arc(770, 130, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(770, 180, 4, 0, Math.PI * 2); ctx.fill();
+
+    if (data.zone === 'cutoff') {
+      // Interruptor obert
+      ctx.beginPath(); ctx.moveTo(770, 180); ctx.lineTo(745, 138); ctx.stroke();
+      ctx.fillStyle = "#fca5a5";
+      ctx.fillText("Circuit Obert (IC = 0)", 770, 225);
+    } else if (data.zone === 'sat') {
+      // Interruptor tancat
+      ctx.beginPath(); ctx.moveTo(770, 180); ctx.lineTo(770, 130); ctx.stroke();
+      ctx.fillStyle = "#fcd34d";
+      ctx.fillText("Interruptor Tancat (0,2 V)", 770, 225);
+    } else {
+      // Font de corrent controlada (Zona Activa)
+      ctx.beginPath(); ctx.arc(770, 155, 18, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(770, 143); ctx.lineTo(770, 167); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(770, 167); ctx.lineTo(765, 159); ctx.lineTo(775, 159); ctx.fill();
+      ctx.fillStyle = "#86efac";
+      ctx.fillText("Amplificador (IC = β·IB)", 770, 225);
+    }
+
+    // Animació partícules de corrent
+    if (data.ib > 0) {
+      ctx.fillStyle = "#38bdf8"; // Electrons / corrent IB
+      const stepB = (animOffset * 0.8) % 35;
+      for (let x = 160 + stepB; x < tx - 35; x += 35) {
+        ctx.beginPath(); ctx.arc(x, ty, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    if (data.ic > 0) {
+      ctx.fillStyle = "#facc15"; // Corrent gran IC
+      const speedC = Math.min(3.5, 0.8 + (data.ic * 150));
+      const stepC = (animOffset * speedC) % 30;
+      for (let y = 40 + stepC; y < ty - 25; y += 30) {
+        ctx.beginPath(); ctx.arc(tx + 15, y, 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+      for (let y = ty + 25 + stepC; y < 260; y += 30) {
+        ctx.beginPath(); ctx.arc(tx + 15, y, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
+  // =========================================================
+  // CÀLCULS I DIBUIX MODE 2: POLARITZACIÓ UNIVERSAL I RECTA DE CÀRREGA
+  // =========================================================
+  function calcUniv() {
+    const pot = parseFloat(document.getElementById('u-pot').value); // % del divisor
+    const vcc = parseFloat(document.getElementById('u-vcc').value);
+    const rc_k = parseFloat(document.getElementById('u-rc').value);
+    const re_k = parseFloat(document.getElementById('u-re').value);
+
+    document.getElementById('lbl-u-pot').textContent = pot + " %";
+    document.getElementById('lbl-u-vcc').textContent = vcc + " V";
+    document.getElementById('lbl-u-rc').textContent = rc_k.toFixed(1) + " kΩ";
+    document.getElementById('lbl-u-re').textContent = re_k.toFixed(2) + " kΩ";
+
+    const rc = rc_k * 1000;
+    const re = re_k * 1000;
+    const r_total_pot = 20000; // Divisor 20k total
+    const rb2 = (pot / 100) * r_total_pot;
+    const rb1 = r_total_pot - rb2;
+    const beta = 150;
+
+    // Equivalent de Thévenin a la base
+    const vth = vcc * (rb2 / (rb1 + rb2));
+    const rth = (rb1 * rb2) / (rb1 + rb2);
+
+    const vbe_on = 0.7;
+    const vce_sat = 0.2;
+
+    // Punts límit de la recta de càrrega
+    const vce_max = vcc; // Quan IC = 0
+    const ic_max = (vcc - vce_sat) / (rc + re); // Quan VCE ≈ 0
+
+    let ib = 0, ic = 0, vce = vcc, state = 'active';
+
+    if (vth <= vbe_on) {
+      state = 'cutoff';
+      ic = 0;
+      vce = vcc;
+    } else {
+      ib = (vth - vbe_on) / (rth + (beta + 1) * re);
+      const ic_calc = beta * ib;
+      if (ic_calc >= ic_max) {
+        state = 'sat';
+        ic = ic_max;
+        vce = vce_sat;
+      } else {
+        state = 'active';
+        ic = ic_calc;
+        vce = vcc - ic * (rc + re);
+      }
+    }
+
+    document.getElementById('val-u-vce').textContent = vce.toFixed(2) + " V";
+    document.getElementById('val-u-ic').textContent = (ic * 1000).toFixed(2) + " mA";
+    document.getElementById('val-u-vce-max').textContent = vce_max.toFixed(2) + " V";
+    document.getElementById('val-u-ic-max').textContent = (ic_max * 1000).toFixed(2) + " mA";
+
+    const badge = document.getElementById('univ-zone-badge');
+    const targetVce = vcc / 2;
+    const diff = Math.abs(vce - targetVce);
+
+    if (state === 'cutoff') {
+      badge.className = 'zone-badge zone-cutoff';
+      badge.textContent = 'En Tall (Apuja el potenciòmetre)';
+    } else if (state === 'sat') {
+      badge.className = 'zone-badge zone-sat';
+      badge.textContent = 'En Saturació (Baixa el potenciòmetre)';
+    } else if (diff <= vcc * 0.08) {
+      badge.className = 'zone-badge zone-active';
+      badge.textContent = 'Punt Q Òptim (Centrat: VCE ≈ VCC/2)';
+    } else {
+      badge.className = 'zone-badge zone-active';
+      badge.textContent = 'Zona Activa (Punt Q Descentrat)';
+    }
+
+    document.getElementById('univ-math-box').innerHTML = `
+      <h4>Anàlisi de la Recta de Càrrega i Punt de Treball (Q)</h4>
+      <p>• <strong>Tall eix horitzontal (IC = 0):</strong> <code>VCE(tall) = VCC = ${vce_max.toFixed(2)} V</code></p>
+      <p>• <strong>Tall eix vertical (VCE ≈ 0):</strong> <code>IC(sat) = VCC / (RC + RE) = ${vcc} V / ${(rc_k + re_k).toFixed(2)} kΩ = ${(ic_max * 1000).toFixed(2)} mA</code></p>
+      <p>• <strong>Objectiu d'amplificació sense distorsió:</strong> Ajusta el potenciòmetre perquè <code>VCE ≈ VCC / 2 = ${(vcc / 2).toFixed(2)} V</code>. Actualment tens <code>VCE = ${vce.toFixed(2)} V</code>.</p>
+    `;
+
+    return { vcc, rc_k, re_k, vce, ic, vce_max, ic_max, state };
+  }
+
+  function updateUniv() {
+    calcUniv();
+  }
+
+  function drawUnivVisuals(data) {
+    // 1. Esquema Divisor de Tensió (Esquerra)
+    const c1 = document.getElementById('canvas-univ-circuit');
+    const ctx1 = c1.getContext('2d');
+    ctx1.clearRect(0, 0, c1.width, c1.height);
+    ctx1.fillStyle = "#0f172a";
+    ctx1.fillRect(0, 0, c1.width, c1.height);
+
+    const tx = 290, ty = 165;
+
+    ctx1.strokeStyle = "#64748b";
+    ctx1.lineWidth = 2.5;
+    // Branca divisor RB1 - RB2
+    ctx1.beginPath();
+    ctx1.moveTo(140, 40); ctx1.lineTo(140, 290);
+    // Branca col·lector - emissor
+    ctx1.moveTo(tx + 15, 40); ctx1.lineTo(tx + 15, ty - 20);
+    ctx1.moveTo(tx + 15, ty + 20); ctx1.lineTo(tx + 15, 290);
+    // Rail +VCC i Massa
+    ctx1.moveTo(100, 40); ctx1.lineTo(350, 40);
+    ctx1.moveTo(100, 290); ctx1.lineTo(350, 290);
+    // Connexió Base
+    ctx1.moveTo(140, ty); ctx1.lineTo(tx - 12, ty);
+    ctx1.stroke();
+
+    ctx1.fillStyle = "#f87171";
+    ctx1.font = "bold 13px sans-serif";
+    ctx1.textAlign = "center";
+    ctx1.fillText(`+VCC = ${data.vcc} V`, 225, 28);
+
+    // RB1 (Dalt esquerra)
+    ctx1.fillStyle = "#1e293b"; ctx1.strokeStyle = "#38bdf8";
+    ctx1.fillRect(128, 70, 24, 55); ctx1.strokeRect(128, 70, 24, 55);
+    ctx1.fillStyle = "#38bdf8"; ctx1.textAlign = "right";
+    ctx1.fillText("RB1", 118, 102);
+
+    // RB2 / Potenciòmetre (Baix esquerra)
+    ctx1.fillStyle = "#1e293b"; ctx1.strokeStyle = "#a855f7";
+    ctx1.fillRect(128, 200, 24, 55); ctx1.strokeRect(128, 200, 24, 55);
+    ctx1.fillStyle = "#c084fc";
+    ctx1.fillText("Pot. Base", 118, 232);
+
+    // RC i RE
+    ctx1.fillStyle = "#1e293b"; ctx1.strokeStyle = "#facc15";
+    ctx1.fillRect(tx + 3, 65, 24, 55); ctx1.strokeRect(tx + 3, 65, 24, 55);
+    ctx1.fillStyle = "#facc15"; ctx1.textAlign = "left";
+    ctx1.fillText(`RC (${data.rc_k.toFixed(1)}k)`, tx + 35, 97);
+
+    ctx1.fillStyle = "#1e293b"; ctx1.strokeStyle = "#4ade80";
+    ctx1.fillRect(tx + 3, 210, 24, 55); ctx1.strokeRect(tx + 3, 210, 24, 55);
+    ctx1.fillStyle = "#4ade80";
+    ctx1.fillText(`RE (${data.re_k.toFixed(2)}k)`, tx + 35, 242);
+
+    // Símbol NPN
+    ctx1.strokeStyle = "#22c55e";
+    ctx1.lineWidth = 2.5;
+    ctx1.beginPath(); ctx1.arc(tx, ty, 30, 0, Math.PI * 2); ctx1.stroke();
+    ctx1.beginPath(); ctx1.moveTo(tx - 12, ty - 16); ctx1.lineTo(tx - 12, ty + 16); ctx1.stroke();
+    ctx1.beginPath(); ctx1.moveTo(tx - 12, ty - 7); ctx1.lineTo(tx + 15, ty - 20); ctx1.stroke();
+    ctx1.beginPath(); ctx1.moveTo(tx - 12, ty + 7); ctx1.lineTo(tx + 15, ty + 20); ctx1.stroke();
+
+    // Voltímetre VCE virtual
+    ctx1.strokeStyle = "#38bdf8";
+    ctx1.setLineDash([4, 4]);
+    ctx1.beginPath();
+    ctx1.moveTo(tx + 15, ty - 28); ctx1.lineTo(tx + 85, ty - 28);
+    ctx1.lineTo(tx + 85, ty + 28); ctx1.lineTo(tx + 15, ty + 28);
+    ctx1.stroke();
+    ctx1.setLineDash([]);
+
+    ctx1.fillStyle = "#0284c7";
+    ctx1.beginPath(); ctx1.arc(tx + 85, ty, 22, 0, Math.PI * 2); ctx1.fill();
+    ctx1.fillStyle = "#ffffff";
+    ctx1.textAlign = "center";
+    ctx1.font = "bold 11px sans-serif";
+    ctx1.fillText("VCE", tx + 85, ty - 3);
+    ctx1.fillText(data.vce.toFixed(1) + "V", tx + 85, ty + 10);
+
+    // 2. Gràfica de Recta de Càrrega (Dreta)
+    const c2 = document.getElementById('canvas-univ-graph');
+    const ctx2 = c2.getContext('2d');
+    ctx2.clearRect(0, 0, c2.width, c2.height);
+    ctx2.fillStyle = "#0f172a";
+    ctx2.fillRect(0, 0, c2.width, c2.height);
+
+    const padL = 65, padB = 50, padT = 35, padR = 35;
+    const gW = c2.width - padL - padR;
+    const gH = c2.height - padT - padB;
+
+    // Eixos
+    ctx2.strokeStyle = "#94a3b8";
+    ctx2.lineWidth = 2;
+    ctx2.beginPath();
+    ctx2.moveTo(padL, padT);
+    ctx2.lineTo(padL, padT + gH);
+    ctx2.lineTo(padL + gW, padT + gH);
+    ctx2.stroke();
+
+    ctx2.fillStyle = "#cbd5e1";
+    ctx2.font = "bold 12px sans-serif";
+    ctx2.textAlign = "center";
+    ctx2.fillText("RECTA DE CÀRREGA I PUNT DE TREBALL (Q)", padL + gW / 2, 20);
+    ctx2.fillText("Tensió Col·lector-Emissor VCE (V)", padL + gW / 2, c2.height - 12);
+
+    ctx2.save();
+    ctx2.translate(18, padT + gH / 2);
+    ctx2.rotate(-Math.PI / 2);
+    ctx2.fillText("Corrent Col·lector IC (mA)", 0, 0);
+    ctx2.restore();
+
+    // Escales màximes gràfica
+    const maxGraphV = 25;
+    const maxGraphI_mA = Math.max(15, Math.ceil((data.ic_max * 1000) / 5) * 5);
+
+    const x_vceMax = padL + (data.vce_max / maxGraphV) * gW;
+    const y_icMax = padT + gH - ((data.ic_max * 1000) / maxGraphI_mA) * gH;
+
+    // Línia Recta de Càrrega
+    ctx2.strokeStyle = "#38bdf8";
+    ctx2.lineWidth = 3;
+    ctx2.beginPath();
+    ctx2.moveTo(padL, y_icMax);
+    ctx2.lineTo(x_vceMax, padT + gH);
+    ctx2.stroke();
+
+    // Punts d'intersecció
+    ctx2.fillStyle = "#38bdf8";
+    ctx2.beginPath(); ctx2.arc(padL, y_icMax, 5, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(x_vceMax, padT + gH, 5, 0, Math.PI * 2); ctx2.fill();
+
+    ctx2.font = "11px monospace";
+    ctx2.textAlign = "left";
+    ctx2.fillText(`IC(sat)=${(data.ic_max*1000).toFixed(1)}mA`, padL + 8, y_icMax + 4);
+    ctx2.textAlign = "center";
+    ctx2.fillText(`VCC=${data.vce_max}V`, x_vceMax, padT + gH + 16);
+
+    // Coordenades Punt Q actual
+    const qX = padL + (data.vce / maxGraphV) * gW;
+    const qY = padT + gH - ((data.ic * 1000) / maxGraphI_mA) * gH;
+
+    // Línies discontínues projecció Q
+    ctx2.strokeStyle = "#facc15";
+    ctx2.lineWidth = 1.5;
+    ctx2.setLineDash([4, 4]);
+    ctx2.beginPath();
+    ctx2.moveTo(qX, qY); ctx2.lineTo(qX, padT + gH);
+    ctx2.moveTo(qX, qY); ctx2.lineTo(padL, qY);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+
+    // Punt Q brillant
+    ctx2.fillStyle = "#facc15";
+    ctx2.beginPath(); ctx2.arc(qX, qY, 7, 0, Math.PI * 2); ctx2.fill();
+    ctx2.strokeStyle = "#0f172a";
+    ctx2.lineWidth = 2;
+    ctx2.stroke();
+
+    ctx2.fillStyle = "#facc15";
+    ctx2.font = "bold 12px sans-serif";
+    ctx2.textAlign = "left";
+    ctx2.fillText(`Punt Q (${data.vce.toFixed(1)}V, ${(data.ic*1000).toFixed(1)}mA)`, qX + 10, qY - 8);
+  }
+
+  // Bucle principal d'animació
+  function loop() {
+    animOffset += 0.6;
+    if (currentMode === 'fixed') {
+      const data = calcFixed();
+      drawFixedCanvas(data);
+    } else {
+      const data = calcUniv();
+      drawUnivVisuals(data);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+</script>
+
+</body>
+</html>
